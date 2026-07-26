@@ -1,0 +1,123 @@
+<div class="head">
+  <div>
+    <p class="eyebrow">{{ editing ? 'Edit request' : 'New intake' }}</p>
+    <h1>{{ editing ? 'Update governance request' : 'Submit an artifact for review' }}</h1>
+    <p class="mute sub">All fields except title and artifact type are optional — fill in what you have.</p>
+  </div>
+</div>
+
+<div class="error-bar" *ngIf="error">{{ error }}</div>
+
+<form (ngSubmit)="save()" class="form-grid">
+  <!-- Section: Identity -->
+  <section class="panel section span-2">
+    <h3 class="sec-title">Artifact</h3>
+    <div class="two">
+      <label class="field span-2">
+        <span class="label req">ARB Title</span>
+        <input [(ngModel)]="model.arbTitle" name="arbTitle" placeholder="e.g. Real-time Fraud Detection Platform" />
+      </label>
+      <label class="field span-2">
+        <span class="label">Summary</span>
+        <textarea [(ngModel)]="model.summary" name="summary"
+                  placeholder="What is being reviewed and why."></textarea>
+      </label>
+      <label class="field">
+        <span class="label req">Artifact Type</span>
+        <select [(ngModel)]="model.artifactType" name="artifactType">
+          <option value="" disabled>Select a type…</option>
+          <option *ngFor="let t of meta?.artifactTypes" [value]="t">{{ t }}</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">PDLC Checkpoint</span>
+        <select [(ngModel)]="model.pdlcCheckpoint" name="pdlcCheckpoint">
+          <option value="">—</option>
+          <option *ngFor="let c of meta?.pdlcCheckpoints" [value]="c">{{ c }}</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">Artifact Link</span>
+        <input [(ngModel)]="model.artifactLink" name="artifactLink" placeholder="https://…" />
+      </label>
+      <label class="field">
+        <span class="label">PR</span>
+        <input [(ngModel)]="model.pr" name="pr" placeholder="PR-1234" />
+      </label>
+    </div>
+  </section>
+
+  <!-- Section: Application & ownership -->
+  <section class="panel section">
+    <h3 class="sec-title">Application</h3>
+    <label class="field">
+      <span class="label">App ID</span>
+      <input [(ngModel)]="model.appId" name="appId" placeholder="APP-1024" />
+    </label>
+    <label class="field">
+      <span class="label">App Name</span>
+      <input [(ngModel)]="model.appName" name="appName" placeholder="FraudGuard" />
+    </label>
+    <label class="field">
+      <span class="label">TrackIT ID</span>
+      <input [(ngModel)]="model.trackitId" name="trackitId" placeholder="TRK-88012" />
+    </label>
+  </section>
+
+  <section class="panel section">
+    <h3 class="sec-title">Solution architecture</h3>
+    <label class="field">
+      <span class="label">Solution Architect (Primary)</span>
+      <input [(ngModel)]="model.solutionArchitect" name="solutionArchitect" placeholder="Full name" />
+    </label>
+    <label class="field">
+      <span class="label">Contributors</span>
+      <input [(ngModel)]="model.saContributors" name="saContributors" placeholder="Comma-separated names" />
+    </label>
+  </section>
+
+  <!-- Section: Governance -->
+  <section class="panel section span-2">
+    <h3 class="sec-title">Governance review</h3>
+    <div class="two">
+      <label class="field">
+        <span class="label">Date Submitted</span>
+        <input type="date" [(ngModel)]="model.dateSubmitted" name="dateSubmitted" />
+      </label>
+      <label class="field">
+        <span class="label">Date Reviewed</span>
+        <input type="date" [(ngModel)]="model.dateReviewed" name="dateReviewed" />
+      </label>
+      <label class="field">
+        <span class="label">BU Governance Reviewer</span>
+        <input [(ngModel)]="model.buGovReviewer" name="buGovReviewer" placeholder="Full name" />
+      </label>
+      <label class="field">
+        <span class="label">Enterprise Governance Reviewer</span>
+        <input [(ngModel)]="model.eaGovReviewer" name="eaGovReviewer" placeholder="Full name" />
+      </label>
+      <label class="field">
+        <span class="label">Status</span>
+        <select [(ngModel)]="model.status" name="status">
+          <option *ngFor="let s of meta?.lifecycle" [value]="s">{{ s }}</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">Approval Date</span>
+        <input type="date" [(ngModel)]="model.approvalDate" name="approvalDate" />
+      </label>
+      <label class="field span-2">
+        <span class="label">Comments</span>
+        <textarea [(ngModel)]="model.comments" name="comments"
+                  placeholder="Reviewer notes, conditions, follow-ups."></textarea>
+      </label>
+    </div>
+  </section>
+
+  <div class="actions span-2">
+    <button type="button" class="btn btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving">
+      {{ saving ? 'Saving…' : (editing ? 'Save changes' : 'Submit request') }}
+    </button>
+  </div>
+</form>

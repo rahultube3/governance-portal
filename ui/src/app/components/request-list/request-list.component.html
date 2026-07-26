@@ -1,0 +1,59 @@
+<div class="head">
+  <div>
+    <p class="eyebrow">Governance queue</p>
+    <h1>Requests</h1>
+  </div>
+  <a routerLink="/requests/new" class="btn btn-primary">New intake</a>
+</div>
+
+<div class="filters panel">
+  <div class="search">
+    <input type="text" [(ngModel)]="fSearch" (keyup.enter)="load()"
+           placeholder="Search title, summary, app, TrackIT ID…" />
+  </div>
+  <select [(ngModel)]="fStatus" (change)="load()">
+    <option value="">All statuses</option>
+    <option *ngFor="let s of meta?.lifecycle" [value]="s">{{ s }}</option>
+  </select>
+  <select [(ngModel)]="fType" (change)="load()">
+    <option value="">All artifact types</option>
+    <option *ngFor="let t of meta?.artifactTypes" [value]="t">{{ shortType(t) }}</option>
+  </select>
+  <button class="btn btn-ghost" (click)="clear()">Clear</button>
+</div>
+
+<div class="panel table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34%">Title</th>
+        <th>Type</th>
+        <th>App</th>
+        <th>TrackIT</th>
+        <th>Architect</th>
+        <th>Submitted</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of requests" class="row-link" (click)="open(r)">
+        <td>
+          <div class="cell-title">{{ r.arbTitle }}</div>
+          <div class="cell-sub mono mute">{{ r.pdlcCheckpoint || '—' }}</div>
+        </td>
+        <td>{{ shortType(r.artifactType) }}</td>
+        <td class="mono">{{ r.appName || '—' }}</td>
+        <td class="mono">{{ r.trackitId || '—' }}</td>
+        <td>{{ r.solutionArchitect || '—' }}</td>
+        <td class="mono">{{ r.dateSubmitted || '—' }}</td>
+        <td><app-status-badge [status]="r.status"></app-status-badge></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="loading" class="empty mute">Loading requests…</div>
+  <div *ngIf="!loading && !requests.length" class="empty">
+    <p class="mute">No requests match these filters.</p>
+    <a routerLink="/requests/new" class="btn btn-primary">Create an intake</a>
+  </div>
+</div>

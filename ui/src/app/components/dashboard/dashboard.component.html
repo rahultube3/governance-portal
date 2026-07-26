@@ -1,0 +1,69 @@
+<section class="hero">
+  <p class="eyebrow">Enterprise Architecture</p>
+  <h1>Governance intake, from request to record.</h1>
+  <p class="lede mute">
+    Submit ARB, ADR, data, messaging, and AI/ML artifacts for review, then track each one as it
+    moves through the governance lifecycle.
+  </p>
+  <div class="hero-actions">
+    <a routerLink="/requests/new" class="btn btn-primary">Start an intake</a>
+    <a routerLink="/requests" class="btn btn-ghost">View all requests</a>
+  </div>
+</section>
+
+<!-- Signature: the lifecycle rail -->
+<section class="rail-wrap panel">
+  <div class="rail-head">
+    <p class="eyebrow">Governance lifecycle</p>
+    <span class="mono mute">{{ stats?.total ?? 0 }} total in flight</span>
+  </div>
+  <div class="rail">
+    <ng-container *ngFor="let s of lifecycle; let i = index; let last = last">
+      <a class="stage" [attr.data-st]="stageKey[s]" routerLink="/requests" [queryParams]="{status: s}">
+        <span class="stage-count">{{ count(s) }}</span>
+        <span class="stage-name mono">{{ s }}</span>
+      </a>
+      <span class="arrow mono" *ngIf="!last" aria-hidden="true">→</span>
+    </ng-container>
+  </div>
+</section>
+
+<div class="grid">
+  <!-- By artifact type -->
+  <section class="panel block">
+    <div class="block-head">
+      <h3>By artifact type</h3>
+    </div>
+    <ul class="type-list">
+      <li *ngFor="let t of typeEntries()">
+        <span class="t-name">{{ shortType(t.name) }}</span>
+        <span class="t-bar-wrap">
+          <span class="t-bar" [style.width.%]="(stats && stats.total) ? (t.count / stats.total * 100) : 0"></span>
+        </span>
+        <span class="t-count mono">{{ t.count }}</span>
+      </li>
+      <li *ngIf="!typeEntries().length" class="mute">No requests yet.</li>
+    </ul>
+  </section>
+
+  <!-- Recent -->
+  <section class="panel block">
+    <div class="block-head">
+      <h3>Recent activity</h3>
+      <a routerLink="/requests" class="mono see-all">See all →</a>
+    </div>
+    <div *ngIf="loading" class="mute pad">Loading…</div>
+    <ul class="recent" *ngIf="!loading">
+      <li *ngFor="let r of recent" [routerLink]="['/requests', r.id]" class="recent-row">
+        <div class="rr-main">
+          <span class="rr-title">{{ r.arbTitle }}</span>
+          <span class="rr-meta mono mute">{{ shortType(r.artifactType) }} · {{ r.appName || '—' }}</span>
+        </div>
+        <app-status-badge [status]="r.status"></app-status-badge>
+      </li>
+      <li *ngIf="!recent.length" class="mute pad">
+        No requests yet. <a routerLink="/requests/new">Create the first one.</a>
+      </li>
+    </ul>
+  </section>
+</div>

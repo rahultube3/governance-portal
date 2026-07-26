@@ -1,0 +1,92 @@
+<div *ngIf="loading" class="mute pad">Loading request…</div>
+
+<ng-container *ngIf="!loading && req">
+  <a routerLink="/requests" class="back mono">← Back to requests</a>
+
+  <div class="head">
+    <div class="head-main">
+      <p class="eyebrow">{{ req.artifactType }}</p>
+      <h1>{{ req.arbTitle }}</h1>
+      <p class="summary mute" *ngIf="req.summary">{{ req.summary }}</p>
+    </div>
+    <div class="head-side">
+      <app-status-badge [status]="req.status"></app-status-badge>
+      <div class="head-actions">
+        <a [routerLink]="['/requests', req.id, 'edit']" class="btn btn-ghost">Edit</a>
+        <button class="btn btn-ghost btn-danger" (click)="confirmDelete = true">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Left: metadata -->
+    <section class="panel meta-card">
+      <h3 class="card-title">Intake metadata</h3>
+      <dl class="meta">
+        <ng-container *ngFor="let f of fields()">
+          <div class="meta-row">
+            <dt>{{ f.label }}</dt>
+            <dd [class.mono]="f.mono">
+              <a *ngIf="f.link && f.value" [href]="f.value" target="_blank" rel="noopener">{{ f.value }}</a>
+              <span *ngIf="!f.link">{{ f.value || '—' }}</span>
+            </dd>
+          </div>
+        </ng-container>
+      </dl>
+      <div class="comments" *ngIf="req.comments">
+        <dt>Comments</dt>
+        <p>{{ req.comments }}</p>
+      </div>
+    </section>
+
+    <!-- Right: governance actions + history -->
+    <aside class="side">
+      <section class="panel act-card">
+        <h3 class="card-title">Advance lifecycle</h3>
+        <label class="field">
+          <span class="label">Move to status</span>
+          <select [(ngModel)]="newStatus">
+            <option *ngFor="let s of meta?.lifecycle" [value]="s">{{ s }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Note (optional)</span>
+          <textarea [(ngModel)]="statusNote" placeholder="Reason for the transition"></textarea>
+        </label>
+        <button class="btn btn-primary full" (click)="applyStatus()"
+                [disabled]="updating || newStatus === req.status">
+          {{ updating ? 'Updating…' : 'Apply transition' }}
+        </button>
+      </section>
+
+      <section class="panel hist-card">
+        <h3 class="card-title">History</h3>
+        <ol class="timeline">
+          <li *ngFor="let h of req.history">
+            <span class="dot" [attr.data-st]="h.to_status"></span>
+            <div class="tl-body">
+              <div class="tl-line mono">
+                <span *ngIf="h.from_status">{{ h.from_status }} → </span>{{ h.to_status }}
+              </div>
+              <div class="tl-note" *ngIf="h.note">{{ h.note }}</div>
+              <div class="tl-time mono mute">{{ h.changed_at }}</div>
+            </div>
+          </li>
+          <li *ngIf="!req.history?.length" class="mute">No transitions recorded.</li>
+        </ol>
+      </section>
+    </aside>
+  </div>
+</ng-container>
+
+<!-- delete confirm -->
+<div class="modal-mask" *ngIf="confirmDelete" (click)="confirmDelete = false">
+  <div class="modal panel" (click)="$event.stopPropagation()">
+    <h3>Delete this request?</h3>
+    <p class="mute">This permanently removes the request and its history. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" (click)="confirmDelete = false">Keep it</button>
+      <button class="btn btn-primary btn-danger" (click)="del()">Delete request</button>
+    </div>
+  </div>
+</div>

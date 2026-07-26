@@ -1,0 +1,157 @@
+<section class="ins-hero">
+  <div>
+    <p class="eyebrow">Executive scorecard</p>
+    <h1>Governance Insights</h1>
+    <p class="lede mute">
+      Intake volume, throughput, and completion rate across the governance lifecycle —
+      rolled up monthly, quarterly, and annually for portfolio leadership.
+    </p>
+  </div>
+  <div class="ins-actions">
+    <button class="btn" (click)="exportCsv()" [disabled]="loading()">Export CSV</button>
+  </div>
+</section>
+
+<!-- Controls -->
+<section class="panel ins-controls">
+  <div class="seg" role="tablist" aria-label="Reporting cadence">
+    <button role="tab" [class.on]="grain()==='monthly'"   (click)="setGrain('monthly')">Monthly</button>
+    <button role="tab" [class.on]="grain()==='quarterly'" (click)="setGrain('quarterly')">Quarterly</button>
+    <button role="tab" [class.on]="grain()==='yearly'"    (click)="setGrain('yearly')">Yearly</button>
+  </div>
+  <label class="year-pick" *ngIf="grain() !== 'yearly'">
+    <span class="mono mute">Fiscal year</span>
+    <select [ngModel]="year()" (ngModelChange)="setYear($event)">
+      <option *ngFor="let y of years()" [ngValue]="y">{{ y }}</option>
+    </select>
+  </label>
+</section>
+
+<!-- KPI tiles -->
+<section class="kpi-grid">
+  <div class="kpi">
+    <p class="kpi-label mono">Intake</p>
+    <p class="kpi-value">{{ totals().intake }}</p>
+    <p class="kpi-sub mono mute">artifacts submitted</p>
+  </div>
+  <div class="kpi accent-ea">
+    <p class="kpi-label mono">Completed</p>
+    <p class="kpi-value">{{ totals().completed }}</p>
+    <p class="kpi-sub mono mute">endorsed by governance</p>
+  </div>
+  <div class="kpi accent-amber">
+    <p class="kpi-label mono">In-flight</p>
+    <p class="kpi-value">{{ totals().inFlight }}</p>
+    <p class="kpi-sub mono mute">pending closure</p>
+  </div>
+  <div class="kpi accent-cyan">
+    <p class="kpi-label mono">Completion rate</p>
+    <p class="kpi-value">{{ totals().completionRate }}<span class="kpi-unit">%</span></p>
+    <p class="kpi-sub mono mute">completed ÷ intake</p>
+  </div>
+</section>
+
+<!-- Chart -->
+<section class="panel block">
+  <div class="block-head">
+    <h3>Intake vs. completion — {{ grain() === 'yearly' ? 'by year' : (grain() === 'quarterly' ? year() + ' by quarter' : year() + ' by month') }}</h3>
+    <div class="legend mono">
+      <span class="lg-dot lg-intake"></span> Intake
+      <span class="lg-dot lg-completed"></span> Completed
+    </div>
+  </div>
+
+  <div class="chart" *ngIf="!loading()">
+    <div class="bar-col" *ngFor="let b of chartBars()">
+      <div class="bars">
+        <div class="bar bar-intake"    [style.height.%]="b.intakeH"    [title]="'Intake: ' + b.intake"></div>
+        <div class="bar bar-completed" [style.height.%]="b.completedH" [title]="'Completed: ' + b.completed"></div>
+      </div>
+      <div class="bar-label mono">{{ b.label }}</div>
+      <div class="bar-rate mono mute">{{ b.completionRate }}%</div>
+    </div>
+  </div>
+  <div class="pad mute" *ngIf="loading()">Loading…</div>
+</section>
+
+<!-- Matrix table -->
+<section class="panel block">
+  <div class="block-head">
+    <h3>Period matrix</h3>
+    <span class="mono mute">{{ periods().length }} periods</span>
+  </div>
+  <div class="tbl-wrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th class="num">Intake</th>
+          <th class="num">Completed</th>
+          <th class="num">In-flight</th>
+          <th>Completion</th>
+          <th class="num">Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of periods()">
+          <td class="p-label">{{ r.label }}</td>
+          <td class="num mono">{{ r.intake }}</td>
+          <td class="num mono">{{ r.completed }}</td>
+          <td class="num mono">{{ r.inFlight }}</td>
+          <td>
+            <div class="mrail">
+              <span class="mrail-fill" [style.width.%]="r.completionRate"></span>
+            </div>
+          </td>
+          <td class="num mono">{{ r.completionRate }}%</td>
+        </tr>
+        <tr *ngIf="!periods().length">
+          <td colspan="6" class="mute pad">No data for this period.</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="mono mute">TOTAL</td>
+          <td class="num mono">{{ totals().intake }}</td>
+          <td class="num mono">{{ totals().completed }}</td>
+          <td class="num mono">{{ totals().inFlight }}</td>
+          <td></td>
+          <td class="num mono">{{ totals().completionRate }}%</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+
+<!-- Type breakdown -->
+<section class="panel block">
+  <div class="block-head">
+    <h3>Portfolio mix — {{ grain() === 'yearly' ? 'all years' : year() }}</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Artifact type</th>
+          <th class="num">Intake</th>
+          <th class="num">Completed</th>
+          <th>Completion</th>
+          <th class="num">Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of typeBreakdown()">
+          <td class="p-label">{{ t.shortName }}<span class="mono mute t-full"> · {{ t.name }}</span></td>
+          <td class="num mono">{{ t.intake }}</td>
+          <td class="num mono">{{ t.completed }}</td>
+          <td>
+            <div class="mrail">
+              <span class="mrail-fill" [style.width.%]="t.completionRate"></span>
+            </div>
+          </td>
+          <td class="num mono">{{ t.completionRate }}%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

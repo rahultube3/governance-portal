@@ -1,0 +1,205 @@
+/* ============================================================
+   Architecture Governance Portal — Design System
+   Direction: "Blueprint Control Room"
+   Palette:
+     --ink        #0E1726  deep navy ground
+     --panel      #17233A  raised panel
+     --line       #26344F  hairline structure
+     --cyan       #46C2CE  blueprint accent (primary)
+     --amber      #E8A33D  attention / in-progress
+     --paper      #EAF0F7  primary text
+     --mute       #8497B4  secondary text
+   Type:
+     Space Grotesk — display / headings
+     IBM Plex Sans — body / forms
+     IBM Plex Mono — IDs, status, data
+   ============================================================ */
+
+:root {
+  --ink: #0E1726;
+  --ink-2: #0A111E;
+  --panel: #17233A;
+  --panel-2: #1D2B45;
+  --line: #26344F;
+  --line-soft: #1F2B44;
+  --cyan: #46C2CE;
+  --cyan-dim: #2C7A82;
+  --amber: #E8A33D;
+  --paper: #EAF0F7;
+  --mute: #8497B4;
+  --mute-2: #5D6E8C;
+
+  --on-primary: #06222a;
+  --bg-glow: rgba(70,194,206,0.06);
+
+  /* lifecycle status colors */
+  --st-pending: #8497B4;
+  --st-fb: #46C2CE;
+  --st-ea: #6BD08A;
+  --st-follow: #E8A33D;
+  --st-rework: #E86A5C;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 12px 40px -18px rgba(0,0,0,0.6);
+  --ff-display: 'Space Grotesk', system-ui, sans-serif;
+  --ff-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --ff-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+[data-theme="light"] {
+  --ink: #F4F6FA;
+  --ink-2: #EAEEF5;
+  --panel: #FFFFFF;
+  --panel-2: #F8FAFC;
+  --line: #D6DCE7;
+  --line-soft: #E6EAF1;
+  --cyan: #1592A0;
+  --cyan-dim: #0E6B76;
+  --amber: #B57A1E;
+  --paper: #14213A;
+  --mute: #5D6E8C;
+  --mute-2: #8497B4;
+
+  --on-primary: #FFFFFF;
+  --bg-glow: rgba(21,146,160,0.08);
+
+  --st-pending: #6B7A99;
+  --st-fb: #1592A0;
+  --st-ea: #3F9F5C;
+  --st-follow: #B57A1E;
+  --st-rework: #C24A3E;
+
+  --shadow: 0 10px 30px -18px rgba(15,25,45,0.20);
+
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, var(--bg-glow), transparent 60%),
+    var(--ink);
+  color: var(--paper);
+  font-family: var(--ff-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .15s, color .15s;
+}
+
+h1, h2, h3, h4 { font-family: var(--ff-display); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+
+a { color: var(--cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button { font-family: var(--ff-body); cursor: pointer; }
+
+/* ---- utility bits ---- */
+.mono { font-family: var(--ff-mono); }
+.eyebrow {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+.mute { color: var(--mute); }
+
+.container { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+/* ---- buttons ---- */
+.btn {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--paper);
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: border-color .15s, background .15s, transform .05s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn:hover { border-color: var(--cyan-dim); background: #22314e; }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--cyan);
+  color: var(--on-primary);
+  border-color: var(--cyan);
+  font-weight: 600;
+}
+.btn-primary:hover { background: #5cd0db; border-color: #5cd0db; }
+.btn-ghost { background: transparent; }
+.btn-danger:hover { border-color: var(--st-rework); color: #ffb9b0; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---- inputs ---- */
+label.field { display: block; margin-bottom: 16px; }
+label.field > span.label {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-bottom: 6px;
+}
+.req::after { content: " *"; color: var(--amber); }
+
+input, select, textarea {
+  width: 100%;
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--paper);
+  padding: 10px 12px;
+  font-family: var(--ff-body);
+  font-size: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(70,194,206,0.12);
+}
+textarea { resize: vertical; min-height: 84px; }
+input::placeholder, textarea::placeholder { color: var(--mute-2); }
+
+/* ---- cards / panels ---- */
+.panel {
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* ---- table ---- */
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 500;
+}
+td { padding: 14px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+tr.row-link { cursor: pointer; transition: background .12s; }
+tr.row-link:hover { background: rgba(70,194,206,0.05); }
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
