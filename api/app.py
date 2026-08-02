@@ -1,12 +1,17 @@
 """
-Governance Portal REST API
+Fidelity Governance Portal REST API
 Flask + SQLite backend for architecture governance artifact intake & review.
 """
+import json
 import os
 import sqlite3
 from datetime import datetime, date
-from flask import Flask, request, jsonify, g
+from flask import Flask, Response, request, jsonify, g, stream_with_context
 from flask_cors import CORS
+
+import anthropic
+
+from knowledge import SYSTEM_PROMPT
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_DIR, "governance.db")
@@ -29,7 +34,7 @@ ARTIFACT_TYPES = [
 LIFECYCLE = ["PENDING", "APPROVED FB", "APPROVED EA", "FOLLOW UP", "REWORK"]
 
 PDLC_CHECKPOINTS = [
-    "Concept", "Plan", "Design", "Build", "Test", "Deploy", "Operate"
+    "Inception", "Elaboration", "Construction", "Delivery"
 ]
 
 # ---------------------------------------------------------------------------
@@ -326,6 +331,80 @@ def delete_request(req_id):
     db.execute("DELETE FROM requests WHERE id = ?", (req_id,))
     db.commit()
     return jsonify({"deleted": req_id})
+
+
+# ---------------------------------------------------------------------------
+# Chat with the governance documents (streams SSE)
+# ---------------------------------------------------------------------------
+CHAT_MODEL = os.environ.get("CHAT_MODEL", "claude-sonnet-4-6")
+CHAT_MAX_TURNS = 40
+CHAT_MAX_CHARS = 4000
+
+
+def validate_chat_messages(raw: object) -> tuple[list[dict[str, str]] | None, str | None]:
+    if not isinstance(raw, list) or not raw:
+        return None, "messages must be a non-empty list"
+    if len(raw) > CHAT_MAX_TURNS:
+        raw = raw[-CHAT_MAX_TURNS:]
+    out: list[dict[str, str]] = []
+    for m in raw:
+        if not isinstance(m, dict):
+            return None, "each message must be an object"
+        role, content = m.get("role"), m.get("content")
+        if role not in ("user", "assistant"):
+            return None, "role must be 'user' or 'assistant'"
+        if not isinstance(content, str) or not content.strip():
+            return None, "content must be a non-empty string"
+        out.append({"role": role, "content": content[:CHAT_MAX_CHARS]})
+    if out[0]["role"] != "user":
+        return None, "first message must be from the user"
+    return out, None
+
+
+@app.post("/api/chat")
+def chat() -> Response:
+    data = request.get_json(force=True) or {}
+    messages, err = validate_chat_messages(data.get("messages"))
+    if err:
+        return jsonify({"error": err}), 400
+
+    client = anthropic.Anthropic()
+
+    def sse(payload: dict) -> str:
+        return f"data: {json.dumps(payload)}\n\n"
+
+    def generate():
+        try:
+            with client.messages.stream(
+                model=CHAT_MODEL,
+                max_tokens=2048,
+                system=[{
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"},
+                }],
+                messages=messages,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield sse({"text": text})
+            yield sse({"done": True})
+        # SDK raises TypeError when no api_key/auth_token/credentials resolve
+        except TypeError:
+            yield sse({"error": "Chat is not configured. Set ANTHROPIC_API_KEY on the API server."})
+        except anthropic.AuthenticationError:
+            yield sse({"error": "Chat is misconfigured: the API key was rejected."})
+        except anthropic.APIStatusError as e:
+            yield sse({"error": f"Assistant unavailable ({e.status_code}). Try again shortly."})
+        except anthropic.APIConnectionError:
+            yield sse({"error": "Could not reach the assistant. Check the API server's network."})
+        except Exception:
+            yield sse({"error": "Assistant failed unexpectedly. Try again."})
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/api/stats")

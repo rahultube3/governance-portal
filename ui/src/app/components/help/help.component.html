@@ -1,0 +1,135 @@
+<section class="help-hero">
+  <div>
+    <p class="eyebrow">Team reference</p>
+    <h1>Standards &amp; help</h1>
+    <p class="lede mute">
+      The standards your intake is reviewed against, the templates reviewers expect, and where to
+      go when you're stuck. Sample content — point these at your company's own sources.
+    </p>
+  </div>
+  <div class="hero-actions">
+    <a routerLink="/requests/new" class="btn btn-primary">Start an intake</a>
+  </div>
+</section>
+
+<!-- Chat with the documents -->
+<section class="panel chat">
+  <div class="chat-head">
+    <div>
+      <h3>Ask the governance assistant</h3>
+      <p class="chat-sub mute">
+        Chat with the standards and documents on this page — answers cite the source they came from.
+      </p>
+    </div>
+    <button class="btn btn-ghost chat-clear" *ngIf="chatMessages.length" (click)="clearChat()"
+            [disabled]="chatBusy" type="button">Clear</button>
+  </div>
+
+  <div class="chat-suggest" *ngIf="!chatMessages.length">
+    <button class="suggest-chip" type="button" *ngFor="let q of starterQuestions" (click)="sendChat(q)">
+      {{ q }}
+    </button>
+  </div>
+
+  <div class="chat-thread" #thread *ngIf="chatMessages.length">
+    <div class="msg" *ngFor="let m of chatMessages; let last = last"
+         [class.from-user]="m.role === 'user'" [class.err]="m.error">
+      <span class="who mono">{{ m.role === 'user' ? 'You' : 'Assistant' }}</span>
+      <div class="bubble">
+        <span *ngIf="!m.text && chatBusy && last" class="mute">Reading the documents…</span>
+        <span [innerHTML]="render(m.text)"></span>
+      </div>
+    </div>
+  </div>
+
+  <form class="chat-input" (ngSubmit)="sendChat()">
+    <input [(ngModel)]="chatInput" name="chatQuestion" autocomplete="off"
+           placeholder="Ask about a standard, template, or the review process…"
+           [disabled]="chatBusy" />
+    <button class="btn btn-primary" type="submit" [disabled]="chatBusy || !chatInput.trim()">
+      {{ chatBusy ? 'Answering…' : 'Ask' }}
+    </button>
+  </form>
+</section>
+
+<!-- Governance standards -->
+<section class="sec">
+  <div class="sec-head">
+    <h3>Governance standards</h3>
+    <span class="mono mute">{{ standards.length }} active</span>
+  </div>
+  <div class="std-grid">
+    <a class="panel std-card" *ngFor="let s of standards" [href]="s.url" target="_blank" rel="noopener">
+      <span class="std-code mono">{{ s.code }}</span>
+      <span class="std-title">{{ s.title }}</span>
+      <span class="std-summary mute">{{ s.summary }}</span>
+      <span class="std-foot">
+        <span class="chips">
+          <span class="chip mono" *ngFor="let t of s.appliesTo">{{ t }}</span>
+        </span>
+        <span class="std-open mono">View →</span>
+      </span>
+    </a>
+  </div>
+</section>
+
+<div class="two-col">
+  <!-- Quick links -->
+  <section class="panel block">
+    <div class="sec-head">
+      <h3>Quick links</h3>
+    </div>
+    <ul class="link-list">
+      <li *ngFor="let l of quickLinks">
+        <a [href]="l.url" target="_blank" rel="noopener" class="link-row">
+          <span class="lr-main">
+            <span class="lr-label">{{ l.label }}</span>
+            <span class="lr-note mute">{{ l.note }}</span>
+          </span>
+          <span class="lr-arrow mono" aria-hidden="true">↗</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Templates & documents -->
+  <section class="panel block">
+    <div class="sec-head">
+      <h3>Templates &amp; documents</h3>
+    </div>
+    <ul class="link-list">
+      <li *ngFor="let d of templates">
+        <a [href]="d.url" target="_blank" rel="noopener" class="link-row">
+          <span class="lr-main">
+            <span class="lr-label">{{ d.name }} <span class="chip mono">{{ d.kind }}</span></span>
+            <span class="lr-note mute">{{ d.note }}</span>
+          </span>
+          <span class="lr-arrow mono" aria-hidden="true">↗</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+</div>
+
+<!-- FAQ -->
+<section class="panel block">
+  <div class="sec-head">
+    <h3>Common questions</h3>
+  </div>
+  <dl class="faq">
+    <div class="faq-item" *ngFor="let f of faqs">
+      <dt>{{ f.q }}</dt>
+      <dd class="mute">{{ f.a }}</dd>
+    </div>
+  </dl>
+</section>
+
+<!-- Contact -->
+<section class="panel contact">
+  <span class="mono mute">Still stuck?</span>
+  <span>
+    Ask in <a href="https://teams.example.com/channels/arch-governance" target="_blank" rel="noopener">#arch-governance</a>
+    · email <a href="mailto:governance@example.com">governance&#64;example.com</a>
+    · EA office hours Thu 2–3 PM ET
+  </span>
+</section>

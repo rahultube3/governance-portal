@@ -1,5 +1,5 @@
 /* ============================================================
-   Architecture Governance Portal — Design System
+   Fidelity Governance Portal — Design System
    Direction: "Blueprint Control Room"
    Palette:
      --ink        #0E1726  deep navy ground
@@ -10,9 +10,8 @@
      --paper      #EAF0F7  primary text
      --mute       #8497B4  secondary text
    Type:
-     Space Grotesk — display / headings
-     IBM Plex Sans — body / forms
-     IBM Plex Mono — IDs, status, data
+     IBM Plex Sans — single family across headings, body, and data.
+     The display/body/mono vars are kept as roles, not separate faces.
    ============================================================ */
 
 :root {
@@ -42,9 +41,9 @@
   --radius: 10px;
   --radius-sm: 6px;
   --shadow: 0 12px 40px -18px rgba(0,0,0,0.6);
-  --ff-display: 'Space Grotesk', system-ui, sans-serif;
-  --ff-body: 'IBM Plex Sans', system-ui, sans-serif;
-  --ff-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --ff-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ff-display: var(--ff-body);
+  --ff-mono: var(--ff-body);
 }
 
 [data-theme="light"] {
@@ -99,7 +98,8 @@ a:hover { text-decoration: underline; }
 button { font-family: var(--ff-body); cursor: pointer; }
 
 /* ---- utility bits ---- */
-.mono { font-family: var(--ff-mono); }
+/* .mono no longer switches face — tabular figures keep ID columns aligned */
+.mono { font-family: var(--ff-mono); font-variant-numeric: tabular-nums; }
 .eyebrow {
   font-family: var(--ff-mono);
   font-size: 11px;

@@ -2,7 +2,7 @@
   <div>
     <p class="eyebrow">{{ editing ? 'Edit request' : 'New intake' }}</p>
     <h1>{{ editing ? 'Update governance request' : 'Submit an artifact for review' }}</h1>
-    <p class="mute sub">All fields except title and artifact type are optional — fill in what you have.</p>
+    <p class="mute sub">Fields marked with * are required.</p>
   </div>
 </div>
 
@@ -30,7 +30,7 @@
         </select>
       </label>
       <label class="field">
-        <span class="label">PDLC Checkpoint</span>
+        <span class="label req">PDLC Checkpoint</span>
         <select [(ngModel)]="model.pdlcCheckpoint" name="pdlcCheckpoint">
           <option value="">—</option>
           <option *ngFor="let c of meta?.pdlcCheckpoints" [value]="c">{{ c }}</option>
@@ -42,7 +42,7 @@
       </label>
       <label class="field">
         <span class="label">PR</span>
-        <input [(ngModel)]="model.pr" name="pr" placeholder="PR-1234" />
+        <input [(ngModel)]="model.pr" name="pr" placeholder="PR12345" />
       </label>
     </div>
   </section>
@@ -51,16 +51,16 @@
   <section class="panel section">
     <h3 class="sec-title">Application</h3>
     <label class="field">
-      <span class="label">App ID</span>
-      <input [(ngModel)]="model.appId" name="appId" placeholder="APP-1024" />
+      <span class="label req">App ID</span>
+      <input [(ngModel)]="model.appId" name="appId" placeholder="AP12345" />
     </label>
     <label class="field">
-      <span class="label">App Name</span>
+      <span class="label req">App Name</span>
       <input [(ngModel)]="model.appName" name="appName" placeholder="FraudGuard" />
     </label>
     <label class="field">
       <span class="label">TrackIT ID</span>
-      <input [(ngModel)]="model.trackitId" name="trackitId" placeholder="TRK-88012" />
+      <input [(ngModel)]="model.trackitId" name="trackitId" placeholder="98767" />
     </label>
   </section>
 

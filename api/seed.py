@@ -19,7 +19,7 @@ ARTIFACT_TYPES = [
 ]
 
 LIFECYCLE = ["PENDING", "APPROVED FB", "APPROVED EA", "FOLLOW UP", "REWORK"]
-PDLC = ["Concept", "Plan", "Design", "Build", "Test", "Deploy", "Operate"]
+PDLC = ["Inception", "Elaboration", "Construction", "Delivery"]
 
 # Per-type seed catalog: 5 title/summary/app tuples per type
 CATALOG = {

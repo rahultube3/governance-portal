@@ -20,7 +20,7 @@ const THEME_KEY = 'gov-portal-theme';
             </svg>
           </span>
           <span class="brand-text">
-            <span class="brand-name">Governance Portal</span>
+            <span class="brand-name">Fidelity Governance Portal</span>
             <span class="brand-sub mono">Architecture Review · Self-Service</span>
           </span>
         </a>
@@ -28,6 +28,7 @@ const THEME_KEY = 'gov-portal-theme';
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Dashboard</a>
           <a routerLink="/requests" routerLinkActive="active">Requests</a>
           <a routerLink="/insights" routerLinkActive="active">Insights</a>
+          <a routerLink="/help" routerLinkActive="active">Help</a>
           <button
             class="theme-toggle"
             type="button"
@@ -52,7 +53,7 @@ const THEME_KEY = 'gov-portal-theme';
     </main>
 
     <footer class="foot container">
-      <span class="mono mute">Enterprise Architecture · Governance Lifecycle</span>
+      <span class="mono mute">Fidelity Brokerage Architecture · Governance Lifecycle</span>
       <span class="mono mute">PENDING → APPROVED FB → APPROVED EA → FOLLOW UP → REWORK</span>
     </footer>
   `,
