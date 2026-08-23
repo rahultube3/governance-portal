@@ -1,4 +1,4 @@
-# Fidelity Governance Portal — API (Python / Flask / SQLite)
+# Governance Portal — API (Python / Flask / SQLite)
 
 REST API backing the Architecture Governance self-service portal.
 

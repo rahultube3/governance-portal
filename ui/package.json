@@ -1,7 +1,7 @@
 {
   "name": "governance-portal-ui",
   "version": "1.0.0",
-  "description": "Self-service Fidelity Governance Portal - Angular UI",
+  "description": "Self-service Governance Portal - Angular UI",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",

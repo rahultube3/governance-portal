@@ -1,4 +1,4 @@
-# Fidelity Governance Portal — UI (Angular 17)
+# Governance Portal — UI (Angular 17)
 
 Smart, self-service front end for the Architecture Governance process.
 

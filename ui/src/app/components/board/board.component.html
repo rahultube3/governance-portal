@@ -1,0 +1,274 @@
+<section class="page-head">
+  <div>
+    <h1>Team Board</h1>
+    <p class="mute">Shared Kanban across teams · click a card to edit · drag between lanes to change status.</p>
+  </div>
+  <div class="head-actions">
+    <label class="ctrl">
+      <span class="ctrl-label">Group by</span>
+      <select [ngModel]="groupByKey()" (ngModelChange)="setGroupBy($event)">
+        <option *ngFor="let f of groupableFields()" [value]="f.key">{{ f.label }}</option>
+      </select>
+    </label>
+    <button class="btn ghost" (click)="openManage()">Manage fields</button>
+    <button class="btn ghost" (click)="load()">Refresh</button>
+  </div>
+</section>
+
+<section class="insights-strip" *ngIf="!loading()">
+  <div class="stat">
+    <div class="stat-value">{{ totalCards() }}</div>
+    <div class="stat-label">Total cards</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ overdueCount() }}</div>
+    <div class="stat-label">Overdue</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ completedThisWeek() }}</div>
+    <div class="stat-label">Completed this week</div>
+  </div>
+  <div class="stat wide" *ngIf="groupField()">
+    <div class="stat-label">By {{ groupField()?.label }}</div>
+    <div class="stat-chips">
+      <span class="chip" *ngFor="let l of lanes()">
+        {{ l.label }} <b>{{ l.cards.length }}</b>
+      </span>
+    </div>
+  </div>
+</section>
+
+<section class="chart-card" *ngIf="!loading() && chartableFields().length">
+  <div class="chart-head">
+    <div>
+      <h2>Distribution</h2>
+      <p class="mute">Configurable — pick any field and chart type.</p>
+    </div>
+    <div class="chart-controls">
+      <label class="ctrl">
+        <span class="ctrl-label">Field</span>
+        <select [ngModel]="chartFieldKey()" (ngModelChange)="setChartField($event)">
+          <option *ngFor="let f of chartableFields()" [value]="f.key">{{ f.label }}</option>
+        </select>
+      </label>
+      <div class="seg">
+        <button [class.active]="chartKind() === 'donut'" (click)="setChartKind('donut')">Donut</button>
+        <button [class.active]="chartKind() === 'bar'" (click)="setChartKind('bar')">Bar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-body" *ngIf="chartTotal() > 0; else emptyChart">
+    <div class="donut" *ngIf="chartKind() === 'donut'">
+      <svg viewBox="0 0 100 100" width="180" height="180">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" stroke-width="14"/>
+        <circle *ngFor="let s of donutSlices()"
+                cx="50" cy="50" r="42" fill="none"
+                [attr.stroke]="s.color" stroke-width="14"
+                [attr.stroke-dasharray]="s.dash"
+                [attr.stroke-dashoffset]="s.offset"
+                transform="rotate(-90 50 50)"/>
+        <text x="50" y="48" text-anchor="middle" class="donut-num">{{ chartTotal() }}</text>
+        <text x="50" y="60" text-anchor="middle" class="donut-lbl">total</text>
+      </svg>
+      <ul class="legend">
+        <li *ngFor="let s of donutSlices()">
+          <span class="swatch" [style.background]="s.color"></span>
+          <span class="lg-label">{{ s.label }}</span>
+          <span class="lg-value mono">{{ s.value }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="bars" *ngIf="chartKind() === 'bar'">
+      <div class="bar-row" *ngFor="let s of barSlices()">
+        <span class="bar-label">{{ s.label }}</span>
+        <div class="bar-track">
+          <div class="bar-fill" [style.width.%]="s.pct" [style.background]="s.color"></div>
+        </div>
+        <span class="bar-value mono">{{ s.value }}</span>
+      </div>
+    </div>
+  </div>
+  <ng-template #emptyChart>
+    <p class="mute empty">No data for the selected field yet.</p>
+  </ng-template>
+</section>
+
+<section class="kanban" *ngIf="!loading()">
+  <div class="lane" *ngFor="let lane of lanes(); trackBy: trackLaneKey; let li = index"
+       (dragover)="onDragOver($event)"
+       (drop)="onDrop($event, lane.key)">
+    <header class="lane-head">
+      <span class="lane-dot" [style.background]="laneColor(li)"></span>
+      <h3 class="lane-title">{{ lane.label }}</h3>
+      <span class="lane-count">{{ lane.cards.length }}</span>
+    </header>
+
+    <div class="lane-body">
+      <article class="card"
+               *ngFor="let card of lane.cards; trackBy: trackCardId"
+               draggable="true"
+               (dragstart)="onDragStart($event, card)"
+               (click)="openCard(card)">
+        <div class="card-title">{{ cardTitle(card) }}</div>
+        <div class="card-meta" *ngIf="visibleCardFields().length">
+          <span class="pill" *ngFor="let f of visibleCardFields()">
+            <span class="pill-key">{{ f.label }}</span>
+            <span class="pill-val">{{ displayValue(card, f) }}</span>
+          </span>
+        </div>
+      </article>
+
+      <div class="add-card-form" *ngIf="addingLaneFor() === lane.key">
+        <input class="new-card-input" type="text"
+               [(ngModel)]="newCardTitle"
+               (keydown.enter)="commitAddCard(lane.key)"
+               (keydown.escape)="cancelAddCard()"
+               placeholder="Card title" />
+        <div class="row">
+          <button class="btn primary sm" (click)="commitAddCard(lane.key)">Add</button>
+          <button class="btn ghost sm" (click)="cancelAddCard()">Cancel</button>
+        </div>
+      </div>
+      <button class="add-card-btn" *ngIf="addingLaneFor() !== lane.key" (click)="beginAddCard(lane.key)">
+        + Add card
+      </button>
+    </div>
+  </div>
+
+  <div class="lane lane-add" *ngIf="groupField()?.type === 'select'">
+    <div class="add-lane-form" *ngIf="addingNewLane(); else showAddBtn">
+      <input class="new-lane-input" type="text"
+             [(ngModel)]="newLaneName"
+             (keydown.enter)="commitAddLane()"
+             (keydown.escape)="cancelAddLane()"
+             placeholder="Lane name" />
+      <div class="row">
+        <button class="btn primary sm" (click)="commitAddLane()">Add</button>
+        <button class="btn ghost sm" (click)="cancelAddLane()">Cancel</button>
+      </div>
+    </div>
+    <ng-template #showAddBtn>
+      <button class="add-lane-btn" (click)="beginAddLane()">+ Add lane</button>
+    </ng-template>
+  </div>
+</section>
+
+<p class="loading" *ngIf="loading()">Loading board…</p>
+
+<!-- Card edit drawer -->
+<div class="drawer-overlay" *ngIf="drawerCard()" (click)="closeDrawer()"></div>
+<aside class="drawer" *ngIf="drawerCard() as card">
+  <header class="drawer-head">
+    <h2>Edit card</h2>
+    <button class="btn-icon" (click)="closeDrawer()" aria-label="Close">×</button>
+  </header>
+  <div class="drawer-body">
+    <label class="field" *ngFor="let f of drawerFields(); trackBy: trackFieldId">
+      <span class="field-label">{{ f.label }}</span>
+
+      <input *ngIf="f.type === 'text'" type="text"
+             [ngModel]="card.data[f.key]"
+             (ngModelChange)="onDrawerFieldChange(f.key, $event)"/>
+
+      <input *ngIf="f.type === 'number'" type="number"
+             [ngModel]="card.data[f.key]"
+             (ngModelChange)="onDrawerFieldChange(f.key, $event)"/>
+
+      <input *ngIf="f.type === 'date'" type="date"
+             [ngModel]="card.data[f.key]"
+             (ngModelChange)="onDrawerFieldChange(f.key, $event)"/>
+
+      <select *ngIf="f.type === 'select'"
+              [ngModel]="card.data[f.key]"
+              (ngModelChange)="onDrawerFieldChange(f.key, $event)">
+        <option value="">—</option>
+        <option *ngFor="let o of f.options" [value]="o">{{ o }}</option>
+      </select>
+
+      <label *ngIf="f.type === 'checkbox'" class="cb-inline">
+        <input type="checkbox"
+               [ngModel]="!!card.data[f.key]"
+               (ngModelChange)="onDrawerFieldChange(f.key, $event)"/>
+        <span>Yes</span>
+      </label>
+    </label>
+  </div>
+  <footer class="drawer-foot">
+    <button class="btn danger ghost" (click)="deleteDrawerCard()">Delete</button>
+    <div class="spacer"></div>
+    <button class="btn ghost" (click)="closeDrawer()">Cancel</button>
+    <button class="btn primary" (click)="saveDrawer()">Save</button>
+  </footer>
+</aside>
+
+<!-- Manage fields modal -->
+<div class="modal-overlay" *ngIf="manageOpen()" (click)="closeManage()"></div>
+<div class="modal" *ngIf="manageOpen()">
+  <header class="modal-head">
+    <h2>Manage fields</h2>
+    <button class="btn-icon" (click)="closeManage()" aria-label="Close">×</button>
+  </header>
+  <div class="modal-body">
+    <table class="fields-table">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Type</th>
+          <th>Options</th>
+          <th>Role</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let f of fields(); trackBy: trackFieldId">
+          <td>
+            <input type="text" [value]="f.label" (change)="updateFieldLabel(f, $any($event.target).value)"/>
+          </td>
+          <td class="mono">{{ f.type }}</td>
+          <td>
+            <input *ngIf="f.type === 'select'" type="text"
+                   [value]="f.options.join(', ')"
+                   (change)="updateFieldOptions(f, $any($event.target).value)"
+                   placeholder="Comma-separated"/>
+            <span *ngIf="f.type !== 'select'" class="mute">—</span>
+          </td>
+          <td class="roles">
+            <button class="chip-btn"
+                    [class.on]="f.isTitle"
+                    [disabled]="f.type !== 'text' || f.isTitle"
+                    (click)="setTitleField(f)">Title</button>
+            <button class="chip-btn"
+                    [class.on]="f.isGroup"
+                    [disabled]="f.type !== 'select' || f.isGroup"
+                    (click)="setGroupField(f)">Grouping</button>
+          </td>
+          <td>
+            <button class="btn-icon danger"
+                    [disabled]="f.isTitle || f.isGroup"
+                    (click)="deleteField(f)"
+                    title="Delete field">🗑</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="add-field-form">
+      <h3>Add field</h3>
+      <div class="row">
+        <input type="text" [(ngModel)]="newFieldLabel" placeholder="Field label"/>
+        <select [(ngModel)]="newFieldType">
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="date">Date</option>
+          <option value="select">Select</option>
+          <option value="checkbox">Checkbox</option>
+        </select>
+        <input *ngIf="newFieldType === 'select'" type="text"
+               [(ngModel)]="newFieldOptions" placeholder="Option 1, Option 2, …"/>
+        <button class="btn primary" (click)="addField()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>

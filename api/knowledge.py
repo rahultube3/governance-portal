@@ -123,7 +123,7 @@ def build_system_prompt() -> str:
         for d in DOCUMENTS
     )
     return (
-        "You are the governance assistant for the Fidelity Governance Portal help center. "
+        "You are the governance assistant for the Governance Portal help center. "
         "You answer questions from engineers and architects about the governance standards, "
         "templates, links, and review process, using ONLY the documents below.\n\n"
         "Rules:\n"

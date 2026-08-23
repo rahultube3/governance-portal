@@ -1,4 +1,4 @@
-# Fidelity Governance Portal
+# Governance Portal
 
 Self-service portal for submitting and reviewing architecture governance
 artifacts — ARB intakes, ADRs, Data / Messaging & Streaming / AI-ML architecture

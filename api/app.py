@@ -1,5 +1,5 @@
 """
-Fidelity Governance Portal REST API
+Governance Portal REST API
 Flask + SQLite backend for architecture governance artifact intake & review.
 """
 import json
@@ -93,8 +93,63 @@ def init_db():
             FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
         )
     """)
+    # Kanban board tables (dynamic schema)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS board_fields (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            key       TEXT NOT NULL UNIQUE,
+            label     TEXT NOT NULL,
+            type      TEXT NOT NULL,
+            options   TEXT,
+            position  INTEGER NOT NULL DEFAULT 0,
+            is_title  INTEGER NOT NULL DEFAULT 0,
+            is_group  INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS board_cards (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            data        TEXT NOT NULL,
+            position    INTEGER NOT NULL DEFAULT 0,
+            created_at  TEXT NOT NULL,
+            updated_at  TEXT NOT NULL
+        )
+    """)
     db.commit()
+    seed_board_defaults(db)
     db.close()
+
+
+def seed_board_defaults(db):
+    existing = db.execute("SELECT COUNT(*) c FROM board_fields").fetchone()[0]
+    if existing:
+        return
+    ts = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    defaults = [
+        ("title",    "Title",    "text",     None,                                                 0, 1, 0),
+        ("team",     "Team",     "select",   json.dumps(["Platform","Data","AI/ML","Security","Frontend"]), 1, 0, 0),
+        ("owner",    "Owner",    "text",     None,                                                 2, 0, 0),
+        ("status",   "Status",   "select",   json.dumps(["Backlog","In Progress","Blocked","Done"]),3, 0, 1),
+        ("priority", "Priority", "select",   json.dumps(["Low","Medium","High","Urgent"]),         4, 0, 0),
+        ("dueDate",  "Due Date", "date",     None,                                                 5, 0, 0),
+        ("notes",    "Notes",    "text",     None,                                                 6, 0, 0),
+    ]
+    db.executemany(
+        "INSERT INTO board_fields (key,label,type,options,position,is_title,is_group) "
+        "VALUES (?,?,?,?,?,?,?)", defaults
+    )
+    samples = [
+        {"title": "Draft ARB template v2",   "team": "Platform", "owner": "Alice",   "status": "In Progress", "priority": "High",   "dueDate": "2026-09-05", "notes": "Add PDLC alignment section"},
+        {"title": "Fraud model retrain",     "team": "AI/ML",    "owner": "Ravi",    "status": "Backlog",     "priority": "Medium", "dueDate": "2026-09-20", "notes": ""},
+        {"title": "Zero-trust segmentation", "team": "Security", "owner": "Priya",   "status": "Blocked",     "priority": "Urgent", "dueDate": "2026-08-30", "notes": "Waiting on network review"},
+        {"title": "Portal dark mode polish", "team": "Frontend", "owner": "Sam",     "status": "Done",        "priority": "Low",    "dueDate": "2026-08-15", "notes": ""},
+    ]
+    for pos, s in enumerate(samples):
+        db.execute(
+            "INSERT INTO board_cards (data, position, created_at, updated_at) VALUES (?,?,?,?)",
+            (json.dumps(s), pos, ts, ts)
+        )
+    db.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -420,6 +475,197 @@ def stats():
         "byStatus": {s: by_status.get(s, 0) for s in LIFECYCLE},
         "byType": {t: by_type.get(t, 0) for t in ARTIFACT_TYPES},
     })
+
+
+# ---------------------------------------------------------------------------
+# Kanban Board (dynamic schema)
+# ---------------------------------------------------------------------------
+BOARD_FIELD_TYPES = {"text", "number", "date", "select", "checkbox"}
+
+
+def field_to_dict(r):
+    return {
+        "id": r["id"],
+        "key": r["key"],
+        "label": r["label"],
+        "type": r["type"],
+        "options": json.loads(r["options"]) if r["options"] else [],
+        "position": r["position"],
+        "isTitle": bool(r["is_title"]),
+        "isGroup": bool(r["is_group"]),
+    }
+
+
+def card_to_dict(r):
+    return {
+        "id": r["id"],
+        "data": json.loads(r["data"] or "{}"),
+        "position": r["position"],
+        "createdAt": r["created_at"],
+        "updatedAt": r["updated_at"],
+    }
+
+
+def slugify_key(label: str, existing: set) -> str:
+    base = "".join(c if c.isalnum() else "_" for c in label.strip().lower()).strip("_") or "field"
+    key, i = base, 2
+    while key in existing:
+        key = f"{base}_{i}"
+        i += 1
+    return key
+
+
+@app.get("/api/board")
+def board_get_all():
+    db = get_db()
+    fields = [field_to_dict(r) for r in db.execute(
+        "SELECT * FROM board_fields ORDER BY position ASC, id ASC")]
+    cards = [card_to_dict(r) for r in db.execute(
+        "SELECT * FROM board_cards ORDER BY position ASC, id ASC")]
+    return jsonify({"fields": fields, "cards": cards})
+
+
+@app.post("/api/board/fields")
+def board_create_field():
+    data = request.get_json(force=True) or {}
+    label = (data.get("label") or "").strip()
+    ftype = data.get("type")
+    if not label:
+        return jsonify({"error": "label is required"}), 400
+    if ftype not in BOARD_FIELD_TYPES:
+        return jsonify({"error": f"type must be one of {sorted(BOARD_FIELD_TYPES)}"}), 400
+
+    db = get_db()
+    existing_keys = {r["key"] for r in db.execute("SELECT key FROM board_fields")}
+    key = data.get("key") or slugify_key(label, existing_keys)
+    if key in existing_keys:
+        return jsonify({"error": "key already exists"}), 400
+
+    options = data.get("options") or []
+    if ftype != "select":
+        options = []
+    pos_row = db.execute("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM board_fields").fetchone()
+    pos = data.get("position", pos_row["p"])
+    is_title = 1 if data.get("isTitle") else 0
+    is_group = 1 if data.get("isGroup") else 0
+    if is_title:
+        db.execute("UPDATE board_fields SET is_title = 0")
+    if is_group:
+        db.execute("UPDATE board_fields SET is_group = 0")
+
+    cur = db.execute(
+        "INSERT INTO board_fields (key,label,type,options,position,is_title,is_group) "
+        "VALUES (?,?,?,?,?,?,?)",
+        (key, label, ftype, json.dumps(options) if options else None, pos, is_title, is_group)
+    )
+    db.commit()
+    r = db.execute("SELECT * FROM board_fields WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return jsonify(field_to_dict(r)), 201
+
+
+@app.patch("/api/board/fields/<int:fid>")
+def board_update_field(fid):
+    data = request.get_json(force=True) or {}
+    db = get_db()
+    r = db.execute("SELECT * FROM board_fields WHERE id = ?", (fid,)).fetchone()
+    if not r:
+        return jsonify({"error": "Not found"}), 404
+
+    sets, params = [], []
+    if "label" in data:
+        sets.append("label = ?"); params.append((data["label"] or "").strip() or r["label"])
+    if "options" in data:
+        opts = data["options"] or []
+        sets.append("options = ?"); params.append(json.dumps(opts) if opts else None)
+    if "position" in data:
+        sets.append("position = ?"); params.append(int(data["position"]))
+    if "isTitle" in data:
+        if data["isTitle"]:
+            db.execute("UPDATE board_fields SET is_title = 0")
+        sets.append("is_title = ?"); params.append(1 if data["isTitle"] else 0)
+    if "isGroup" in data:
+        if data["isGroup"]:
+            db.execute("UPDATE board_fields SET is_group = 0")
+        sets.append("is_group = ?"); params.append(1 if data["isGroup"] else 0)
+
+    if sets:
+        params.append(fid)
+        db.execute(f"UPDATE board_fields SET {', '.join(sets)} WHERE id = ?", params)
+        db.commit()
+    r = db.execute("SELECT * FROM board_fields WHERE id = ?", (fid,)).fetchone()
+    return jsonify(field_to_dict(r))
+
+
+@app.delete("/api/board/fields/<int:fid>")
+def board_delete_field(fid):
+    db = get_db()
+    r = db.execute("SELECT * FROM board_fields WHERE id = ?", (fid,)).fetchone()
+    if not r:
+        return jsonify({"error": "Not found"}), 404
+    if r["is_title"] or r["is_group"]:
+        return jsonify({"error": "cannot delete the title or grouping field; reassign first"}), 400
+    key = r["key"]
+    db.execute("DELETE FROM board_fields WHERE id = ?", (fid,))
+    # strip the key from every card's data blob
+    for c in db.execute("SELECT id, data FROM board_cards"):
+        d = json.loads(c["data"] or "{}")
+        if key in d:
+            del d[key]
+            db.execute("UPDATE board_cards SET data = ? WHERE id = ?", (json.dumps(d), c["id"]))
+    db.commit()
+    return jsonify({"deleted": fid})
+
+
+@app.post("/api/board/cards")
+def board_create_card():
+    payload = request.get_json(force=True) or {}
+    data = payload.get("data") or {}
+    if not isinstance(data, dict):
+        return jsonify({"error": "data must be an object"}), 400
+    db = get_db()
+    ts = now_iso()
+    pos_row = db.execute("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM board_cards").fetchone()
+    pos = payload.get("position", pos_row["p"])
+    cur = db.execute(
+        "INSERT INTO board_cards (data, position, created_at, updated_at) VALUES (?,?,?,?)",
+        (json.dumps(data), pos, ts, ts)
+    )
+    db.commit()
+    r = db.execute("SELECT * FROM board_cards WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return jsonify(card_to_dict(r)), 201
+
+
+@app.patch("/api/board/cards/<int:cid>")
+def board_update_card(cid):
+    payload = request.get_json(force=True) or {}
+    db = get_db()
+    r = db.execute("SELECT * FROM board_cards WHERE id = ?", (cid,)).fetchone()
+    if not r:
+        return jsonify({"error": "Not found"}), 404
+
+    current = json.loads(r["data"] or "{}")
+    if "data" in payload and isinstance(payload["data"], dict):
+        current.update(payload["data"])
+    ts = now_iso()
+    position = payload.get("position", r["position"])
+    db.execute(
+        "UPDATE board_cards SET data = ?, position = ?, updated_at = ? WHERE id = ?",
+        (json.dumps(current), position, ts, cid)
+    )
+    db.commit()
+    r = db.execute("SELECT * FROM board_cards WHERE id = ?", (cid,)).fetchone()
+    return jsonify(card_to_dict(r))
+
+
+@app.delete("/api/board/cards/<int:cid>")
+def board_delete_card(cid):
+    db = get_db()
+    r = db.execute("SELECT id FROM board_cards WHERE id = ?", (cid,)).fetchone()
+    if not r:
+        return jsonify({"error": "Not found"}), 404
+    db.execute("DELETE FROM board_cards WHERE id = ?", (cid,))
+    db.commit()
+    return jsonify({"deleted": cid})
 
 
 if __name__ == "__main__":
