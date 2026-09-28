@@ -1,0 +1,79 @@
+{
+  "name": "ap193007-fb-governance-portal-experience-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "root": "apps/ap193007-fb-governance-portal-experience-api",
+  "sourceRoot": "apps/ap193007-fb-governance-portal-experience-api/src",
+  "tags": [
+    "type:api",
+    "domain:governance"
+  ],
+  "metadata": {
+    "appInfo": {
+      "appId": "ap193007",
+      "appVersion": "1.0.0",
+      "appType": "node",
+      "domain": "fb-governance",
+      "appName": "fb-governance-portal-experience-api",
+      "componentName": "fb-governance-portal-experience-api",
+      "kadCdUrl": "",
+      "deploymentEnvironments": "dit,xq1"
+    }
+  },
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/dist/apps/fb-governance/fb-governance-portal-experience-api"
+      ],
+      "inputs": [
+        "production",
+        "^production",
+        {
+          "externalDependencies": [
+            "webpack-cli"
+          ]
+        }
+      ],
+      "defaultConfiguration": "production",
+      "options": {
+        "cwd": "apps/ap193007-fb-governance-portal-experience-api",
+        "command": "webpack-cli build"
+      },
+      "configurations": {
+        "development": {
+          "env": {
+            "NODE_ENV": "development"
+          }
+        },
+        "production": {
+          "env": {
+            "NODE_ENV": "production"
+          }
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "ap193007-fb-governance-portal-experience-api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "ap193007-fb-governance-portal-experience-api:build:development"
+        },
+        "production": {
+          "buildTarget": "ap193007-fb-governance-portal-experience-api:build:production"
+        }
+      }
+    },
+    "test": {
+      "options": {
+        "passWithNoTests": true
+      }
+    }
+  }
+}
