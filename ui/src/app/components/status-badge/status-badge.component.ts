@@ -1,11 +1,9 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { LifecycleStatus } from '../../models/request.model';
 
 @Component({
   selector: 'app-status-badge',
   standalone: true,
-  imports: [CommonModule],
   template: `<span class="badge" [attr.data-st]="key">{{ status }}</span>`,
   styles: [`
     .badge {

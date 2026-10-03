@@ -42,6 +42,15 @@
   text-transform: uppercase; color: var(--mute); margin-bottom: 6px;
 }
 .full { width: 100%; justify-content: center; }
+.audit { margin-top: 12px; }
+.act-help { margin: -4px 0 14px; font-size: 13px; line-height: 1.5; }
+.side > .act-help { margin: 0; }
+.action-error {
+  margin: 0; font-size: 13px; color: var(--st-rework);
+  border: 1px solid color-mix(in srgb, var(--st-rework) 40%, transparent);
+  background: color-mix(in srgb, var(--st-rework) 10%, transparent);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+}
 
 /* timeline */
 .timeline { list-style: none; margin: 0; padding: 0; }

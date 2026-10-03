@@ -5,7 +5,7 @@ Generates 5 records for each artifact type, for each month Jan-July 2026.
 """
 import sqlite3, os
 from calendar import monthrange
-from app import DB_PATH, init_db, now_iso
+from app import DB_PATH, backfill_request_owners, init_db, now_iso
 
 YEAR = 2026
 MONTHS = list(range(1, 8))  # Jan..Jul
@@ -139,11 +139,12 @@ def run():
             s["status"], s["approval_date"], s["comments"], ts, ts
         ))
         db.execute(
-            "INSERT INTO status_history (request_id, from_status, to_status, note, changed_at) "
-            "VALUES (?,?,?,?,?)",
-            (cur.lastrowid, None, s["status"], "Seeded", ts)
+            "INSERT INTO status_history (request_id, from_status, to_status, note, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?)",
+            (cur.lastrowid, None, s["status"], "Seeded", ts, ts)
         )
     db.commit()
+    backfill_request_owners(db)
     db.close()
     print(f"Seeded {len(rows)} records into {DB_PATH}")
 

@@ -10,7 +10,7 @@
         <option *ngFor="let f of groupableFields()" [value]="f.key">{{ f.label }}</option>
       </select>
     </label>
-    <button class="btn ghost" (click)="openManage()">Manage fields</button>
+    <button *ngIf="canManageFields" class="btn ghost" (click)="openManage()">Manage fields</button>
     <button class="btn ghost" (click)="load()">Refresh</button>
   </div>
 </section>
@@ -108,7 +108,7 @@
     <div class="lane-body">
       <article class="card"
                *ngFor="let card of lane.cards; trackBy: trackCardId"
-               draggable="true"
+               [attr.draggable]="canEditCards ? 'true' : null"
                (dragstart)="onDragStart($event, card)"
                (click)="openCard(card)">
         <div class="card-title">{{ cardTitle(card) }}</div>
@@ -120,6 +120,7 @@
         </div>
       </article>
 
+      <ng-container *ngIf="canEditCards">
       <div class="add-card-form" *ngIf="addingLaneFor() === lane.key">
         <input class="new-card-input" type="text"
                [(ngModel)]="newCardTitle"
@@ -134,10 +135,11 @@
       <button class="add-card-btn" *ngIf="addingLaneFor() !== lane.key" (click)="beginAddCard(lane.key)">
         + Add card
       </button>
+      </ng-container>
     </div>
   </div>
 
-  <div class="lane lane-add" *ngIf="groupField()?.type === 'select'">
+  <div class="lane lane-add" *ngIf="canManageFields && groupField()?.type === 'select'">
     <div class="add-lane-form" *ngIf="addingNewLane(); else showAddBtn">
       <input class="new-lane-input" type="text"
              [(ngModel)]="newLaneName"
@@ -161,10 +163,10 @@
 <div class="drawer-overlay" *ngIf="drawerCard()" (click)="closeDrawer()"></div>
 <aside class="drawer" *ngIf="drawerCard() as card">
   <header class="drawer-head">
-    <h2>Edit card</h2>
+    <h2>{{ canEditCards ? 'Edit card' : 'Card' }}</h2>
     <button class="btn-icon" (click)="closeDrawer()" aria-label="Close">×</button>
   </header>
-  <div class="drawer-body">
+  <fieldset class="drawer-body" [disabled]="!canEditCards">
     <label class="field" *ngFor="let f of drawerFields(); trackBy: trackFieldId">
       <span class="field-label">{{ f.label }}</span>
 
@@ -194,12 +196,13 @@
         <span>Yes</span>
       </label>
     </label>
-  </div>
+  </fieldset>
+  <app-audit-stamp class="drawer-audit" [record]="card"></app-audit-stamp>
   <footer class="drawer-foot">
-    <button class="btn danger ghost" (click)="deleteDrawerCard()">Delete</button>
+    <button *ngIf="canEditCards" class="btn danger ghost" (click)="deleteDrawerCard()">Delete</button>
     <div class="spacer"></div>
-    <button class="btn ghost" (click)="closeDrawer()">Cancel</button>
-    <button class="btn primary" (click)="saveDrawer()">Save</button>
+    <button class="btn ghost" (click)="closeDrawer()">{{ canEditCards ? 'Cancel' : 'Close' }}</button>
+    <button *ngIf="canEditCards" class="btn primary" (click)="saveDrawer()">Save</button>
   </footer>
 </aside>
 
@@ -218,6 +221,7 @@
           <th>Type</th>
           <th>Options</th>
           <th>Role</th>
+          <th>Last updated</th>
           <th></th>
         </tr>
       </thead>
@@ -244,6 +248,7 @@
                     [disabled]="f.type !== 'select' || f.isGroup"
                     (click)="setGroupField(f)">Grouping</button>
           </td>
+          <td><app-audit-stamp [record]="f" [compact]="true"></app-audit-stamp></td>
           <td>
             <button class="btn-icon danger"
                     [disabled]="f.isTitle || f.isGroup"

@@ -1,8 +1,8 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
+import { AuthService } from '../../services/auth.service';
 import { GovRequest } from '../../models/request.model';
 
 type Grain = 'monthly' | 'quarterly' | 'yearly';
@@ -31,7 +31,7 @@ const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct
 @Component({
   selector: 'app-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './insights.component.html',
   styleUrls: ['./insights.component.css'],
 })
@@ -106,7 +106,7 @@ export class InsightsComponent implements OnInit {
     return rows;
   });
 
-  constructor(private svc: GovernanceService) {}
+  constructor(private svc: GovernanceService, public auth: AuthService) {}
 
   ngOnInit(): void {
     this.svc.list().subscribe(list => {
@@ -119,10 +119,6 @@ export class InsightsComponent implements OnInit {
 
   setGrain(g: Grain) { this.grain.set(g); }
   setYear(y: number) { this.year.set(+y); }
-
-  barWidth(v: number): number {
-    return Math.round((v / this.scaleMax()) * 100);
-  }
 
   chartBars() {
     const rows = this.periods();

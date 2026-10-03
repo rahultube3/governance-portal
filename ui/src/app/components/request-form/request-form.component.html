@@ -84,7 +84,7 @@
         <span class="label">Date Submitted</span>
         <input type="date" [(ngModel)]="model.dateSubmitted" name="dateSubmitted" />
       </label>
-      <label class="field">
+      <label class="field" *ngIf="canEditReview">
         <span class="label">Date Reviewed</span>
         <input type="date" [(ngModel)]="model.dateReviewed" name="dateReviewed" />
       </label>
@@ -96,17 +96,17 @@
         <span class="label">Enterprise Governance Reviewer</span>
         <input [(ngModel)]="model.eaGovReviewer" name="eaGovReviewer" placeholder="Full name" />
       </label>
-      <label class="field">
+      <label class="field" *ngIf="canEditReview">
         <span class="label">Status</span>
         <select [(ngModel)]="model.status" name="status">
           <option *ngFor="let s of meta?.lifecycle" [value]="s">{{ s }}</option>
         </select>
       </label>
-      <label class="field">
+      <label class="field" *ngIf="canEditReview">
         <span class="label">Approval Date</span>
         <input type="date" [(ngModel)]="model.approvalDate" name="approvalDate" />
       </label>
-      <label class="field span-2">
+      <label class="field span-2" *ngIf="canEditReview">
         <span class="label">Comments</span>
         <textarea [(ngModel)]="model.comments" name="comments"
                   placeholder="Reviewer notes, conditions, follow-ups."></textarea>

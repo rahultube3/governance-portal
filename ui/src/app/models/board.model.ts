@@ -9,6 +9,10 @@ export interface BoardField {
   position: number;
   isTitle: boolean;
   isGroup: boolean;
+  createdAt: string | null;
+  createdBy: number | null;
+  updatedAt: string | null;
+  updatedBy: number | null;
 }
 
 export interface BoardCard {
@@ -17,6 +21,8 @@ export interface BoardCard {
   position: number;
   createdAt: string;
   updatedAt: string;
+  createdBy: number | null;
+  updatedBy: number | null;
 }
 
 export interface BoardSnapshot {

@@ -1,0 +1,76 @@
+<div class="head">
+  <p class="eyebrow">Administration</p>
+  <h1>Roles &amp; permissions</h1>
+  <p class="mute sub">
+    Each role is granted to the members of its Azure AD group. When someone signs in, the portal reads
+    their AD groups, finds the roles mapped to those groups, and allows only the permissions ticked below.
+  </p>
+</div>
+
+<p class="banner error" *ngIf="error()">{{ error() }}</p>
+<p class="banner ok" *ngIf="notice()">{{ notice() }}</p>
+
+<p class="mute" *ngIf="!snapshot() && !error()">Loading…</p>
+
+<ng-container *ngIf="snapshot()">
+  <section class="groups">
+    <article class="panel group" *ngFor="let r of roles()" [attr.data-role]="r.code">
+      <header>
+        <h3>{{ r.name }}</h3>
+        <span class="members mono">{{ r.memberCount }} {{ r.memberCount === 1 ? 'member' : 'members' }}</span>
+      </header>
+      <p class="mute desc">{{ r.description }}</p>
+      <label class="group-field">
+        <span class="label">Azure AD group</span>
+        <div class="group-row">
+          <input [(ngModel)]="groupDrafts[r.code]" [name]="'group-' + r.code"
+                 placeholder="Group name or object ID" (keydown.enter)="groupChanged(r) && saveGroup(r)" />
+          <button type="button" class="btn btn-primary" [disabled]="saving() || !groupChanged(r)" (click)="saveGroup(r)">Save</button>
+        </div>
+      </label>
+      <p class="warn" *ngIf="!r.adGroup">Not mapped — nobody receives this role.</p>
+      <div class="role-audit"><span class="label">Last changed</span><app-audit-stamp [record]="r" [compact]="true"></app-audit-stamp></div>
+    </article>
+  </section>
+
+  <section class="panel matrix-wrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th class="perm-col">Permission</th>
+          <th *ngFor="let r of roles()" class="role-col" [attr.data-role]="r.code">
+            <span class="role-name">{{ r.name }}</span>
+            <span class="role-group mono">{{ r.adGroup || 'unmapped' }}</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let cat of categories()">
+          <tr class="cat-row">
+            <td [attr.colspan]="roles().length + 1">{{ cat.name }}</td>
+          </tr>
+          <tr *ngFor="let p of cat.permissions">
+            <td class="perm-col">
+              <code class="code">{{ p.code }}</code>
+              <span class="perm-label">{{ p.label }}</span>
+              <span class="perm-desc mute">{{ p.description }}</span>
+            </td>
+            <td *ngFor="let r of roles()" class="check-cell" [class.changed]="isChanged(r, p.code)" [title]="grantTitle(r, p.code)">
+              <input type="checkbox" [checked]="granted(r.code, p.code)" (change)="toggle(r.code, p.code)"
+                     [attr.aria-label]="p.label + ' for ' + r.name" />
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="save-bar" [class.dirty]="changes() > 0">
+    <span class="mono">{{ changes() ? changes() + ' unsaved ' + (changes() === 1 ? 'change' : 'changes') : 'No unsaved changes' }}</span>
+    <div class="spacer"></div>
+    <button type="button" class="btn btn-ghost" [disabled]="!changes() || saving()" (click)="discard()">Discard</button>
+    <button type="button" class="btn btn-primary" [disabled]="!changes() || saving()" (click)="save()">
+      {{ saving() ? 'Saving…' : 'Save changes' }}
+    </button>
+  </div>
+</ng-container>

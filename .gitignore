@@ -32,6 +32,7 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+api/.secret_key
 
 # --- Claude workspace ---
 .claude/

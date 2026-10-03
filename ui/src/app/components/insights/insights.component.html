@@ -8,7 +8,7 @@
     </p>
   </div>
   <div class="ins-actions">
-    <button class="btn" (click)="exportCsv()" [disabled]="loading()">Export CSV</button>
+    <button *ngIf="auth.can('insights:export')" class="btn" (click)="exportCsv()" [disabled]="loading()">Export CSV</button>
   </div>
 </section>
 

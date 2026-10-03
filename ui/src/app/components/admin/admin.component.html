@@ -1,0 +1,68 @@
+<div class="head">
+  <div>
+    <p class="eyebrow">Administration</p>
+    <h1>Users &amp; roles</h1>
+    <p class="mute sub">
+      Demo sign-in: choosing a role puts the user in that role's Azure AD group.
+      With SSO, group membership comes from Azure AD instead.
+      <a *ngIf="auth.can('role:assign')" routerLink="/admin/permissions">Edit what each role can do →</a>
+    </p>
+  </div>
+  <div class="counts">
+    <span class="count" *ngFor="let c of counts()" [attr.data-role]="c.role">
+      {{ c.label }} <b>{{ c.count }}</b>
+    </span>
+  </div>
+</div>
+
+<p class="error" *ngIf="error()">{{ error() }}</p>
+
+<form class="panel add" (ngSubmit)="add()">
+  <h3>Add user</h3>
+  <div class="add-row">
+    <input name="name" [(ngModel)]="draft.name" placeholder="Full name" required />
+    <input name="email" type="email" [(ngModel)]="draft.email" placeholder="name@company.com" required />
+    <select name="role" [(ngModel)]="draft.role">
+      <option *ngFor="let r of roles()" [value]="r.code">{{ optionLabel(r) }}</option>
+    </select>
+    <button type="submit" class="btn btn-primary" [disabled]="!draft.name.trim() || !draft.email.trim()">Add</button>
+  </div>
+</form>
+
+<div class="panel table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th style="width: 300px">Role &amp; AD group</th>
+        <th>Last updated</th>
+        <th style="width: 60px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let u of users()">
+        <td>
+          {{ u.name }}
+          <span class="you mono" *ngIf="isSelf(u)">you</span>
+        </td>
+        <td class="mono mute">{{ u.email }}</td>
+        <td>
+          <select [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" [attr.aria-label]="'Role for ' + u.name">
+            <option *ngFor="let r of roles()" [value]="r.code">{{ optionLabel(r) }}</option>
+          </select>
+        </td>
+        <td><app-audit-stamp [record]="u" [compact]="true"></app-audit-stamp></td>
+        <td>
+          <button type="button" class="icon-btn" [disabled]="isSelf(u)" (click)="remove(u)"
+                  [attr.aria-label]="'Delete ' + u.name" [title]="isSelf(u) ? 'You cannot delete yourself' : 'Delete user'">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>
+            </svg>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="mute empty" *ngIf="loading()">Loading users…</p>
+</div>

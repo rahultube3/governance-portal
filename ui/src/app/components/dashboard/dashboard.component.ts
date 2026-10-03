@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
+import { AuthService } from '../../services/auth.service';
 import { Stats, GovRequest, LifecycleStatus } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
 
@@ -24,7 +25,7 @@ export class DashboardComponent implements OnInit {
     'FOLLOW UP': 'follow', 'REWORK': 'rework',
   };
 
-  constructor(private svc: GovernanceService) {}
+  constructor(private svc: GovernanceService, public auth: AuthService) {}
 
   ngOnInit(): void {
     this.svc.getStats().subscribe(s => (this.stats = s));

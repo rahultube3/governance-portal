@@ -2,6 +2,8 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BoardService } from '../../services/board.service';
+import { AuthService } from '../../services/auth.service';
+import { AuditStampComponent } from '../audit-stamp/audit-stamp.component';
 import {
   BoardCard,
   BoardField,
@@ -41,7 +43,7 @@ const UNCATEGORIZED = '__uncategorized__';
 @Component({
   selector: 'app-board',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AuditStampComponent],
   templateUrl: './board.component.html',
   styleUrls: ['./board.component.css'],
 })
@@ -70,7 +72,15 @@ export class BoardComponent implements OnInit {
 
   draggingCardId: number | null = null;
 
-  constructor(private svc: BoardService) {}
+  constructor(private svc: BoardService, private auth: AuthService) {}
+
+  get canEditCards(): boolean {
+    return this.auth.can('board:card:edit');
+  }
+
+  get canManageFields(): boolean {
+    return this.auth.can('board:field:manage');
+  }
 
   ngOnInit(): void {
     this.load();

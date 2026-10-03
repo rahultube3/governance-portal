@@ -6,8 +6,8 @@
     moves through the governance lifecycle.
   </p>
   <div class="hero-actions">
-    <a routerLink="/requests/new" class="btn btn-primary">Start an intake</a>
-    <a routerLink="/requests" class="btn btn-ghost">View all requests</a>
+    <a *ngIf="auth.can('request:create')" routerLink="/requests/new" class="btn btn-primary">Start an intake</a>
+    <a routerLink="/requests" class="btn btn-ghost">{{ !auth.can('request:view:all') ? 'View my requests' : 'View all requests' }}</a>
   </div>
 </section>
 
@@ -62,7 +62,7 @@
         <app-status-badge [status]="r.status"></app-status-badge>
       </li>
       <li *ngIf="!recent.length" class="mute pad">
-        No requests yet. <a routerLink="/requests/new">Create the first one.</a>
+        No requests yet.<ng-container *ngIf="auth.can('request:create')"> <a routerLink="/requests/new">Create the first one.</a></ng-container>
       </li>
     </ul>
   </section>

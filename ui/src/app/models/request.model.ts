@@ -9,7 +9,8 @@ export interface StatusHistoryEntry {
   from_status: string | null;
   to_status: string;
   note: string | null;
-  changed_at: string;
+  created_at: string;
+  created_by: number | null;
 }
 
 export interface GovRequest {
@@ -32,6 +33,8 @@ export interface GovRequest {
   status: LifecycleStatus;
   approvalDate?: string;
   comments?: string;
+  createdBy?: number | null;
+  updatedBy?: number | null;
   createdAt?: string;
   updatedAt?: string;
   history?: StatusHistoryEntry[];

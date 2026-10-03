@@ -1,9 +1,9 @@
 <div class="head">
   <div>
-    <p class="eyebrow">Governance queue</p>
-    <h1>Requests</h1>
+    <p class="eyebrow">{{ !auth.can('request:view:all') ? 'Your submissions' : 'Governance queue' }}</p>
+    <h1>{{ !auth.can('request:view:all') ? 'My Requests' : 'Requests' }}</h1>
   </div>
-  <a routerLink="/requests/new" class="btn btn-primary">New intake</a>
+  <a *ngIf="auth.can('request:create')" routerLink="/requests/new" class="btn btn-primary">New intake</a>
 </div>
 
 <div class="filters panel">
@@ -54,6 +54,6 @@
   <div *ngIf="loading" class="empty mute">Loading requests…</div>
   <div *ngIf="!loading && !requests.length" class="empty">
     <p class="mute">No requests match these filters.</p>
-    <a routerLink="/requests/new" class="btn btn-primary">Create an intake</a>
+    <a *ngIf="auth.can('request:create')" routerLink="/requests/new" class="btn btn-primary">Create an intake</a>
   </div>
 </div>

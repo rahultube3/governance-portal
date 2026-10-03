@@ -1,0 +1,40 @@
+<div class="login">
+  <div class="brand">
+    <span class="glyph" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+        <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M12 7v10M7.5 9.5 12 12l4.5-2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <div>
+      <h1>Governance Portal</h1>
+      <p class="mute">Sign in to continue</p>
+    </div>
+  </div>
+
+  <p class="demo-note">
+    Demo sign-in: pick a user to act as. There are no passwords — replace this with SSO before real use.
+  </p>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p class="mute" *ngIf="loading()">Loading users…</p>
+
+  <section class="group panel" *ngFor="let g of groups()" [attr.data-role]="g.role">
+    <header>
+      <h2>{{ g.label }}</h2>
+      <p class="mute">{{ g.blurb }}</p>
+    </header>
+    <div class="users">
+      <button type="button" class="user" *ngFor="let u of g.users"
+              [disabled]="signingIn() !== null" (click)="signIn(u)">
+        <span class="avatar">{{ initials(u.name) }}</span>
+        <span class="who">
+          <span class="name">{{ u.name }}</span>
+          <span class="email mono mute">{{ u.email }}</span>
+        </span>
+        <span class="go mono">{{ signingIn() === u.id ? '…' : '→' }}</span>
+      </button>
+      <p class="mute empty" *ngIf="!g.users.length">No {{ g.label.toLowerCase() }} accounts.</p>
+    </div>
+  </section>
+</div>

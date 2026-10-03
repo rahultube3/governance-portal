@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
+import { AuthService } from '../../services/auth.service';
 import { GovRequest, Meta } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
 
@@ -26,6 +27,7 @@ export class RequestListComponent implements OnInit {
     private svc: GovernanceService,
     private router: Router,
     private route: ActivatedRoute,
+    public auth: AuthService,
   ) {}
 
   ngOnInit(): void {

@@ -1,19 +1,20 @@
 <div *ngIf="loading" class="mute pad">Loading request…</div>
 
 <ng-container *ngIf="!loading && req">
-  <a routerLink="/requests" class="back mono">← Back to requests</a>
+  <a routerLink="/requests" class="back mono">← Back to {{ !auth.can('request:view:all') ? 'my requests' : 'requests' }}</a>
 
   <div class="head">
     <div class="head-main">
       <p class="eyebrow">{{ req.artifactType }}</p>
       <h1>{{ req.arbTitle }}</h1>
       <p class="summary mute" *ngIf="req.summary">{{ req.summary }}</p>
+      <app-audit-stamp class="audit" [record]="req"></app-audit-stamp>
     </div>
     <div class="head-side">
       <app-status-badge [status]="req.status"></app-status-badge>
-      <div class="head-actions">
-        <a [routerLink]="['/requests', req.id, 'edit']" class="btn btn-ghost">Edit</a>
-        <button class="btn btn-ghost btn-danger" (click)="confirmDelete = true">Delete</button>
+      <div class="head-actions" *ngIf="auth.canEdit(req) || auth.canDelete(req)">
+        <a *ngIf="auth.canEdit(req)" [routerLink]="['/requests', req.id, 'edit']" class="btn btn-ghost">Edit</a>
+        <button *ngIf="auth.canDelete(req)" class="btn btn-ghost btn-danger" (click)="confirmDelete = true">Delete</button>
       </div>
     </div>
   </div>
@@ -41,7 +42,9 @@
 
     <!-- Right: governance actions + history -->
     <aside class="side">
-      <section class="panel act-card">
+      <p class="action-error" *ngIf="actionError">{{ actionError }}</p>
+
+      <section class="panel act-card" *ngIf="auth.canReview(req)">
         <h3 class="card-title">Advance lifecycle</h3>
         <label class="field">
           <span class="label">Move to status</span>
@@ -59,6 +62,22 @@
         </button>
       </section>
 
+      <section class="panel act-card" *ngIf="auth.canResubmit(req)">
+        <h3 class="card-title">Resubmit for review</h3>
+        <p class="mute act-help">Reviewers sent this back for rework. Update the request, then resubmit it.</p>
+        <label class="field">
+          <span class="label">What changed (optional)</span>
+          <textarea [(ngModel)]="statusNote" placeholder="Summary of the rework"></textarea>
+        </label>
+        <button class="btn btn-primary full" (click)="resubmit()" [disabled]="updating">
+          {{ updating ? 'Resubmitting…' : 'Resubmit as PENDING' }}
+        </button>
+      </section>
+
+      <p class="mute act-help" *ngIf="auth.can('request:review') && auth.owns(req)">
+        You submitted this request, so another reviewer has to review it.
+      </p>
+
       <section class="panel hist-card">
         <h3 class="card-title">History</h3>
         <ol class="timeline">
@@ -69,7 +88,7 @@
                 <span *ngIf="h.from_status">{{ h.from_status }} → </span>{{ h.to_status }}
               </div>
               <div class="tl-note" *ngIf="h.note">{{ h.note }}</div>
-              <div class="tl-time mono mute">{{ h.changed_at }}</div>
+              <div class="tl-time mono mute">{{ h.created_at | date: 'd MMM y, HH:mm' }} · {{ dir.name(h.created_by) }}</div>
             </div>
           </li>
           <li *ngIf="!req.history?.length" class="mute">No transitions recorded.</li>

@@ -1,0 +1,90 @@
+<section class="page-head">
+  <div>
+    <h1>Kanban Board</h1>
+    <p class="mute">Governance requests by review stage · click a card to open the request.</p>
+  </div>
+  <div class="head-actions">
+    <button class="btn ghost" (click)="load()">Refresh</button>
+  </div>
+</section>
+
+<section class="kanban" *ngIf="!loading()">
+  <div class="lane" *ngFor="let lane of lanes(); trackBy: trackLane">
+    <header class="lane-head" [style.border-top-color]="lane.color">
+      <span class="lane-dot" [style.background]="lane.color"></span>
+      <h3 class="lane-title">{{ lane.label }}</h3>
+      <span class="lane-count">{{ lane.requests.length }}</span>
+    </header>
+
+    <div class="lane-body">
+      <div class="card-wrap" *ngFor="let r of lane.requests; trackBy: trackRequest">
+        <a class="card" [routerLink]="['/requests', r.id]">
+          <div class="card-head">
+            <span class="req-no" [style.border-color]="lane.color" [title]="'ARB-' + r.id">
+              <span class="req-no-prefix">ARB</span>
+              <span class="req-no-num">{{ r.id }}</span>
+            </span>
+            <div class="card-title">{{ r.arbTitle }}</div>
+          </div>
+          <div class="card-meta">
+            <app-status-badge *ngIf="lane.statuses.length > 1" [status]="r.status"></app-status-badge>
+            <span class="pill" *ngIf="r.pr">
+              <span class="pill-key">PR</span>
+              <span class="pill-val">{{ r.pr }}</span>
+            </span>
+            <span class="pill" *ngIf="r.solutionArchitect">
+              <span class="pill-key">SA</span>
+              <span class="pill-val">{{ r.solutionArchitect }}</span>
+            </span>
+          </div>
+        </a>
+        <button class="eye-btn" type="button" (click)="openPreview(r)"
+                [attr.aria-label]="'Quick view ARB-' + r.id" title="Quick view">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+
+      <p class="lane-empty" *ngIf="!lane.requests.length">No requests</p>
+    </div>
+  </div>
+</section>
+
+<p class="loading" *ngIf="loading()">Loading requests…</p>
+
+<div class="drawer-overlay" *ngIf="preview()" (click)="closePreview()"></div>
+<aside class="drawer" *ngIf="preview() as p" role="dialog" [attr.aria-label]="'ARB-' + p.id">
+  <header class="drawer-head">
+    <h2>ARB-{{ p.id }}</h2>
+    <button class="btn-icon" (click)="closePreview()" aria-label="Close">×</button>
+  </header>
+  <div class="drawer-body">
+    <div>
+      <h3 class="preview-title">{{ p.arbTitle }}</h3>
+      <app-status-badge [status]="p.status"></app-status-badge>
+    </div>
+    <p class="preview-summary" *ngIf="p.summary">{{ p.summary }}</p>
+    <dl class="preview-grid">
+      <ng-container *ngFor="let f of previewFields(p)">
+        <dt class="field-label">{{ f.label }}</dt>
+        <dd>{{ f.value }}</dd>
+      </ng-container>
+      <ng-container *ngIf="p.artifactLink">
+        <dt class="field-label">Artifact</dt>
+        <dd><a [href]="p.artifactLink" target="_blank" rel="noopener">{{ p.artifactLink }}</a></dd>
+      </ng-container>
+    </dl>
+    <div *ngIf="p.comments">
+      <span class="field-label">Comments</span>
+      <p class="preview-summary">{{ p.comments }}</p>
+    </div>
+    <app-audit-stamp [record]="p"></app-audit-stamp>
+  </div>
+  <footer class="drawer-foot">
+    <div class="spacer"></div>
+    <button class="btn ghost" (click)="closePreview()">Close</button>
+    <a class="btn primary" [routerLink]="['/requests', p.id]">Open request</a>
+  </footer>
+</aside>

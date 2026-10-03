@@ -1,14 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
+import { AuthService } from '../../services/auth.service';
 import { GovRequest, Meta, LifecycleStatus } from '../../models/request.model';
 
 @Component({
   selector: 'app-request-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './request-form.component.html',
   styleUrls: ['./request-form.component.css'],
 })
@@ -44,6 +45,7 @@ export class RequestFormComponent implements OnInit {
     private svc: GovernanceService,
     private router: Router,
     private route: ActivatedRoute,
+    private auth: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -54,6 +56,10 @@ export class RequestFormComponent implements OnInit {
       this.id = +idParam;
       this.svc.get(this.id).subscribe(r => (this.model = { ...this.model, ...r }));
     }
+  }
+
+  get canEditReview(): boolean {
+    return this.auth.can('request:edit:all');
   }
 
   today(): string {

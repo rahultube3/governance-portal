@@ -1,0 +1,184 @@
+@startuml governance-portal-er
+' Built-in Java layout engine, so the diagram renders without Graphviz installed.
+!pragma layout smetana
+title Governance Portal — Entity Relationship Diagram\n<size:11>SQLite · api/governance.db</size>
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam defaultFontName Helvetica
+skinparam ArrowColor #5D6E8C
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #26344F
+  FontStyle bold
+}
+skinparam package {
+  BorderColor #8497B4
+  FontColor #26344F
+  BackgroundColor #F8FAFC
+}
+
+package "Governance requests" #F4F9FB {
+  entity "requests" as requests {
+    * id : INTEGER <<PK>>
+    --
+    * arb_title : TEXT
+    summary : TEXT
+    artifact_link : TEXT
+    pr : TEXT
+    app_id : TEXT
+    app_name : TEXT
+    trackit_id : TEXT
+    solution_architect : TEXT
+    sa_contributors : TEXT
+    * artifact_type : TEXT
+    pdlc_checkpoint : TEXT
+    * date_submitted : TEXT
+    date_reviewed : TEXT
+    bu_gov_reviewer : TEXT
+    ea_gov_reviewer : TEXT
+    * status : TEXT = 'PENDING'
+    approval_date : TEXT
+    comments : TEXT
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "status_history" as status_history {
+    * id : INTEGER <<PK>>
+    --
+    * request_id : INTEGER <<FK requests>>
+    from_status : TEXT
+    * to_status : TEXT
+    note : TEXT
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+}
+
+package "Identity & access" #FBF8F2 {
+  entity "users" as users {
+    * id : INTEGER <<PK>>
+    --
+    * name : TEXT
+    * email : TEXT <<UNIQUE>>
+    * role : TEXT <<CHECK REQUESTOR|REVIEWER|ADMIN>>
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "roles" as roles {
+    * id : INTEGER <<PK>>
+    --
+    * code : TEXT <<UNIQUE>>
+    * name : TEXT
+    ad_group : TEXT
+    description : TEXT
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "permissions" as permissions {
+    * code : TEXT <<PK>>
+    --
+    * category : TEXT
+    * label : TEXT
+    description : TEXT
+    * position : INTEGER = 0
+    .. audit ..
+    created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "role_permissions" as role_permissions {
+    * role_id : INTEGER <<PK, FK roles>>
+    * permission_code : TEXT <<PK, FK permissions>>
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+}
+
+package "Team Board" #F4F8F4 {
+  entity "board_fields" as board_fields {
+    * id : INTEGER <<PK>>
+    --
+    * key : TEXT <<UNIQUE>>
+    * label : TEXT
+    * type : TEXT
+    options : TEXT (JSON array)
+    * position : INTEGER = 0
+    * is_title : INTEGER = 0
+    * is_group : INTEGER = 0
+    .. audit ..
+    created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "board_cards" as board_cards {
+    * id : INTEGER <<PK>>
+    --
+    * data : TEXT (JSON object)
+    * position : INTEGER = 0
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+}
+
+' ---- Foreign keys (enforced) ----
+requests ||--o{ status_history : "request_id\nON DELETE CASCADE"
+roles ||--o{ role_permissions : "role_id\nON DELETE CASCADE"
+permissions ||--o{ role_permissions : "permission_code\nON DELETE CASCADE"
+
+' ---- Audit foreign keys to users (all ON DELETE SET NULL) ----
+users |o--o{ requests : "created_by /\nupdated_by"
+users |o--o{ status_history : "created_by /\nupdated_by"
+users |o--o{ roles : "created_by /\nupdated_by"
+users |o--o{ permissions : "created_by /\nupdated_by"
+users |o--o{ role_permissions : "created_by /\nupdated_by"
+users |o--o{ board_fields : "created_by /\nupdated_by"
+users |o--o{ board_cards : "created_by /\nupdated_by"
+users |o--o{ users : "created_by /\nupdated_by"
+
+' ---- Logical relationships (no FK constraint) ----
+users }o..|| roles : "role = roles.code\n(demo AD group membership)"
+board_fields ||..o{ board_cards : "data JSON keyed\nby board_fields.key"
+
+legend bottom left
+  |= Notation |= Meaning |
+  | <b>●</b> column | NOT NULL |
+  | solid line | foreign key enforced by SQLite (PRAGMA foreign_keys = ON) |
+  | dashed line | relationship the app relies on, without a FK constraint |
+  | .. audit .. | created_at / created_by / updated_at / updated_by, present on every table |
+  | <<FK users>> | audit column; ON DELETE SET NULL. NULL = written by the system (seed or catalog sync) |
+  |  | Audit columns added by migration are nullable in SQLite but backfilled on startup |
+  |  | Timestamps are ISO-8601 UTC strings stored as TEXT |
+  |  | Access: user → AD group (roles.ad_group) → role → role_permissions → permissions |
+endlegend
+
+@enduml
