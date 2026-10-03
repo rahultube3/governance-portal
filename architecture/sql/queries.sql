@@ -20,6 +20,7 @@ UNION ALL SELECT 'permissions', COUNT(*) FROM permissions
 UNION ALL SELECT 'role_permissions', COUNT(*) FROM role_permissions
 UNION ALL SELECT 'requests', COUNT(*) FROM requests
 UNION ALL SELECT 'status_history', COUNT(*) FROM status_history
+UNION ALL SELECT 'request_statuses', COUNT(*) FROM request_statuses
 UNION ALL SELECT 'board_fields', COUNT(*) FROM board_fields
 UNION ALL SELECT 'board_cards', COUNT(*) FROM board_cards;
 
@@ -125,40 +126,66 @@ ORDER BY q.updated_at DESC;
 -- One request (:request_id).
 SELECT * FROM requests WHERE id = :request_id;
 
--- Requests in one status (:status), e.g. 'PENDING'.
+-- Requests in one status (:status), e.g. 'SUBMITTED'.
 SELECT id, arb_title, app_name, date_submitted FROM requests WHERE status = :status ORDER BY date_submitted;
 
 -- Requests owned by one user (:user_id) — what a requestor sees as "My Requests".
 SELECT id, arb_title, status, updated_at FROM requests WHERE created_by = :user_id ORDER BY updated_at DESC;
 
--- Counts by status (Dashboard lifecycle rail).
-SELECT status, COUNT(*) AS requests FROM requests GROUP BY status ORDER BY requests DESC;
+-- Counts by status, in lifecycle order (Dashboard lifecycle rail).
+SELECT s.code, s.label, COUNT(r.id) AS requests
+FROM request_statuses s
+LEFT JOIN requests r ON r.status = s.code
+GROUP BY s.code
+ORDER BY s.position;
 
 -- Counts by Kanban Board column.
 SELECT CASE status
-         WHEN 'PENDING'     THEN 'Pending'
-         WHEN 'FOLLOW UP'   THEN 'Pending Chief Architecture Review'
-         WHEN 'APPROVED FB' THEN 'Approved'
-         WHEN 'APPROVED EA' THEN 'Approved'
-         WHEN 'REWORK'      THEN 'Rejected'
+         WHEN 'SUBMITTED'                 THEN 'Submitted'
+         WHEN 'IN_REVIEW'                 THEN 'In Review'
+         WHEN 'SCHEDULED'                 THEN 'In Review'
+         WHEN 'CHANGES_REQUESTED'         THEN 'Changes Requested'
+         WHEN 'CHIEF_ARCHITECTURE_REVIEW' THEN 'Chief Architecture Review'
+         WHEN 'APPROVED'                  THEN 'Approved'
+         WHEN 'APPROVED_WITH_CONDITIONS'  THEN 'Approved'
+         WHEN 'REJECTED'                  THEN 'Rejected'
        END AS kanban_column,
        COUNT(*) AS requests
 FROM requests
+WHERE status NOT IN ('DRAFT', 'WITHDRAWN')
 GROUP BY kanban_column;
 
--- Counts by artifact type.
+-- Counts by review type.
 SELECT artifact_type, COUNT(*) AS requests FROM requests GROUP BY artifact_type ORDER BY requests DESC;
 
 -- Monthly intake vs completed (Insights).
 SELECT substr(date_submitted, 1, 7) AS month,
        COUNT(*) AS intake,
-       SUM(status IN ('APPROVED FB', 'APPROVED EA')) AS completed
+       SUM(status IN ('APPROVED', 'APPROVED_WITH_CONDITIONS')) AS completed
 FROM requests
 GROUP BY month
 ORDER BY month;
 
--- Requests with no owner (pre-sign-in data that couldn't be matched to a requestor).
+-- Requests with no owner (seeded requests whose architect matches no demo requestor, or whose owner was deleted).
 SELECT id, arb_title, solution_architect FROM requests WHERE created_by IS NULL;
+
+-- Upcoming ARB meetings (the Calendar), soonest first.
+SELECT r.meeting_date, r.meeting_time, r.id, r.arb_title, s.label AS status
+FROM requests r
+JOIN request_statuses s ON s.code = r.status
+WHERE r.meeting_date >= date('now')
+ORDER BY r.meeting_date, r.meeting_time;
+
+-- ===========================================================================
+-- request_statuses
+-- ===========================================================================
+
+-- Status lookup in lifecycle order, with how many requests are in each.
+SELECT s.position, s.code, s.label, s.meaning, s.who_acts, COUNT(r.id) AS requests
+FROM request_statuses s
+LEFT JOIN requests r ON r.status = s.code
+GROUP BY s.code
+ORDER BY s.position;
 
 -- ===========================================================================
 -- status_history
@@ -240,6 +267,7 @@ SELECT a.table_name, a.row_key, a.changed_at, COALESCE(u.name, 'System') AS chan
     UNION ALL SELECT 'roles', code, updated_at, updated_by FROM roles
     UNION ALL SELECT 'permissions', code, updated_at, updated_by FROM permissions
     UNION ALL SELECT 'role_permissions', role_id || ':' || permission_code, created_at, created_by FROM role_permissions
+    UNION ALL SELECT 'request_statuses', code, updated_at, updated_by FROM request_statuses
     UNION ALL SELECT 'board_fields', key, updated_at, updated_by FROM board_fields
     UNION ALL SELECT 'board_cards', CAST(id AS TEXT), updated_at, updated_by FROM board_cards
 ) a

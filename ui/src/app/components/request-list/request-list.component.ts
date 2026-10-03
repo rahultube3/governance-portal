@@ -6,6 +6,7 @@ import { GovernanceService } from '../../services/governance.service';
 import { AuthService } from '../../services/auth.service';
 import { GovRequest, Meta } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
+import { RequestStatusService } from '../../services/request-status.service';
 
 @Component({
   selector: 'app-request-list',
@@ -28,7 +29,10 @@ export class RequestListComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     public auth: AuthService,
-  ) {}
+    public statuses: RequestStatusService,
+  ) {
+    statuses.ensureLoaded();
+  }
 
   ngOnInit(): void {
     this.svc.getMeta().subscribe(m => (this.meta = m));

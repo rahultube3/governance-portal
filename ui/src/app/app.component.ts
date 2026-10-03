@@ -56,6 +56,12 @@ const THEME_KEY = 'gov-portal-theme';
             </svg>
             Kanban Board
           </a>
+          <a *ngIf="auth.can('calendar:view')" routerLink="/calendar" routerLinkActive="active">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+            </svg>
+            Calendar
+          </a>
           <a *ngIf="auth.can('insights:view')" routerLink="/insights" routerLinkActive="active">
             <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/>
@@ -120,7 +126,7 @@ const THEME_KEY = 'gov-portal-theme';
 
         <footer class="foot container">
           <span class="mono mute">Brokerage Architecture · Governance Lifecycle</span>
-          <span class="mono mute">PENDING → APPROVED FB → APPROVED EA → FOLLOW UP → REWORK</span>
+          <span class="mono mute">Draft → Submitted → In Review → Approved</span>
         </footer>
       </div>
     </div>
@@ -178,6 +184,7 @@ const THEME_KEY = 'gov-portal-theme';
       display: flex; flex-direction: column; gap: 8px;
     }
     .me { display: flex; align-items: center; gap: 10px; padding: 4px 6px 8px; }
+    .me[data-role] { --role: var(--st-ea); }
     .me[data-role="REQUESTOR"] { --role: var(--st-pending); }
     .me[data-role="REVIEWER"] { --role: var(--st-follow); }
     .me[data-role="ADMIN"] { --role: var(--cyan); }

@@ -5,8 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RbacService } from '../../services/rbac.service';
 import { AuthService } from '../../services/auth.service';
 import { UserDirectoryService } from '../../services/user-directory.service';
-import { AuditStampComponent } from '../audit-stamp/audit-stamp.component';
-import { PermissionDef, RbacSnapshot, RoleDef } from '../../models/rbac.model';
+import { PermissionDef, RbacSnapshot, RoleDef, RoleInput } from '../../models/rbac.model';
 import { Permission, Role } from '../../models/user.model';
 
 interface Category {
@@ -16,20 +15,24 @@ interface Category {
 
 type Grants = Record<Role, Set<Permission>>;
 
+const blankRole = (): RoleInput => ({ code: '', name: '', adGroup: '', description: '', permissions: [] });
+
 @Component({
   selector: 'app-permissions',
   standalone: true,
-  imports: [CommonModule, FormsModule, AuditStampComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './permissions.component.html',
   styleUrls: ['./permissions.component.css'],
 })
 export class PermissionsComponent implements OnInit {
   snapshot = signal<RbacSnapshot | null>(null);
   draft = signal<Grants | null>(null);
-  groupDrafts: Partial<Record<Role, string>> = {};
   saving = signal(false);
   error = signal('');
   notice = signal('');
+  creating = signal(false);
+  newRole = blankRole();
+  private codeEdited = false;
 
   roles = computed<RoleDef[]>(() => this.snapshot()?.roles ?? []);
 
@@ -105,15 +108,41 @@ export class PermissionsComponent implements OnInit {
     });
   }
 
-  groupChanged(role: RoleDef): boolean {
-    return (this.groupDrafts[role.code] ?? '').trim() !== role.adGroup;
+  openCreate(): void {
+    this.newRole = blankRole();
+    this.codeEdited = false;
+    this.creating.set(true);
   }
 
-  saveGroup(role: RoleDef): void {
+  setRoleName(name: string): void {
+    this.newRole.name = name;
+    if (!this.codeEdited) {
+      this.newRole.code = name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32);
+    }
+  }
+
+  setRoleCode(code: string): void {
+    this.newRole.code = code;
+    this.codeEdited = true;
+  }
+
+  toggleNew(p: Permission): void {
+    const perms = this.newRole.permissions;
+    this.newRole.permissions = perms.includes(p) ? perms.filter(x => x !== p) : [...perms, p];
+  }
+
+  createRole(): void {
+    const role = this.newRole;
     this.saving.set(true);
     this.error.set('');
-    this.svc.updateRole(role.code, { adGroup: this.groupDrafts[role.code] ?? '' }).subscribe({
-      next: s => this.saved(s, `${role.name} is now granted to members of “${(this.groupDrafts[role.code] ?? '').trim() || 'no group'}”.`),
+    this.svc.createRole(role).subscribe({
+      next: s => {
+        // Creating reloads the matrix; keep any unsaved ticks on the existing roles.
+        const pending = this.draft();
+        this.saved(s, `Created ${role.name.trim()}.`);
+        if (pending) this.draft.update(d => d && { ...d, ...pending });
+        this.creating.set(false);
+      },
       error: e => { this.saving.set(false); this.fail(e); },
     });
   }
@@ -130,7 +159,6 @@ export class PermissionsComponent implements OnInit {
     const draft = {} as Grants;
     for (const r of s.roles) {
       draft[r.code] = new Set(r.permissions);
-      this.groupDrafts[r.code] = r.adGroup;
     }
     this.draft.set(draft);
   }

@@ -1,0 +1,58 @@
+<div class="head">
+  <div>
+    <p class="eyebrow">Architecture Review Board</p>
+    <h1>Calendar</h1>
+    <p class="mute sub">Requests booked for an ARB meeting, on their meeting date.</p>
+  </div>
+</div>
+
+<section class="panel cal">
+  <div class="cal-bar">
+    <div class="nav">
+      <button type="button" class="btn btn-ghost icon" (click)="shift(-1)" aria-label="Previous month">‹</button>
+      <button type="button" class="btn btn-ghost icon" (click)="shift(1)" aria-label="Next month">›</button>
+      <button type="button" class="btn btn-ghost" (click)="goToday()">Today</button>
+    </div>
+    <h2>{{ monthLabel() }}</h2>
+    <span class="mono mute count" *ngIf="!loading()">
+      {{ monthCount() }} {{ monthCount() === 1 ? 'meeting' : 'meetings' }}
+    </span>
+  </div>
+
+  <div class="grid" role="grid" [attr.aria-label]="monthLabel()">
+    <div class="wd mono" *ngFor="let w of weekdays" role="columnheader">{{ w }}</div>
+    <ng-container *ngFor="let week of weeks()">
+      <div class="day" *ngFor="let d of week" role="gridcell"
+           [class.out]="!d.inMonth" [class.today]="d.isToday">
+        <span class="num mono">{{ d.day }}</span>
+        <a class="event" *ngFor="let r of d.meetings" [routerLink]="['/requests', r.id]"
+           [style.--st]="statusColor[r.status]" [title]="(r.meetingTime ? r.meetingTime + ' · ' : '') + statuses.label(r.status) + ' · ' + r.arbTitle">
+          <span class="ev-time mono" *ngIf="r.meetingTime">{{ r.meetingTime }}</span>
+          <span class="ev-id mono">ARB-{{ r.id }}</span>
+          <span class="ev-title">{{ r.arbTitle }}</span>
+        </a>
+        <span class="dots" *ngIf="d.meetings.length" aria-hidden="true">
+          <span class="dot" *ngFor="let r of d.meetings" [style.background]="statusColor[r.status]"></span>
+        </span>
+      </div>
+    </ng-container>
+  </div>
+</section>
+
+<section class="panel agenda">
+  <h3>{{ monthLabel() }}</h3>
+  <p class="mute" *ngIf="loading()">Loading…</p>
+  <p class="mute" *ngIf="!loading() && !agenda().length">Nothing scheduled this month.</p>
+  <div class="ag-day" *ngFor="let d of agenda()">
+    <span class="ag-date mono">{{ d.date | date: 'EEE d MMM' }}</span>
+    <div class="ag-items">
+      <a class="ag-item" *ngFor="let r of d.meetings" [routerLink]="['/requests', r.id]">
+        <span class="ag-time mono">{{ r.meetingTime || 'No time' }}</span>
+        <span class="ev-id mono">ARB-{{ r.id }}</span>
+        <span class="ag-title">{{ r.arbTitle }}</span>
+        <span class="mono mute ag-app">{{ r.appName || '—' }}</span>
+        <app-status-badge [status]="r.status"></app-status-badge>
+      </a>
+    </div>
+  </div>
+</section>

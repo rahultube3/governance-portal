@@ -7,6 +7,7 @@ import { InsightsComponent } from './components/insights/insights.component';
 import { HelpComponent } from './components/help/help.component';
 import { BoardComponent } from './components/board/board.component';
 import { KanbanComponent } from './components/kanban/kanban.component';
+import { CalendarComponent } from './components/calendar/calendar.component';
 import { LoginComponent } from './components/login/login.component';
 import { AdminComponent } from './components/admin/admin.component';
 import { PermissionsComponent } from './components/permissions/permissions.component';
@@ -26,6 +27,7 @@ export const routes: Routes = [
       { path: 'insights', component: InsightsComponent, data: needs('insights:view') },
       { path: 'board', component: BoardComponent },
       { path: 'kanban', component: KanbanComponent, data: VIEW_REQUESTS },
+      { path: 'calendar', component: CalendarComponent, data: needs('calendar:view') },
       { path: 'help', component: HelpComponent },
       { path: 'admin/users', component: AdminComponent, data: needs('user:manage') },
       { path: 'admin/permissions', component: PermissionsComponent, data: needs('role:assign') },

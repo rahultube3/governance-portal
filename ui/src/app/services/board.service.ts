@@ -11,7 +11,7 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class BoardService {
-  private base = '/api/board';
+  private base = '/api/v1/board';
 
   constructor(private http: HttpClient) {}
 

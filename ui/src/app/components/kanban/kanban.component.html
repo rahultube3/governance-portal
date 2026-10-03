@@ -3,7 +3,37 @@
     <h1>Kanban Board</h1>
     <p class="mute">Governance requests by review stage · click a card to open the request.</p>
   </div>
-  <div class="head-actions">
+</section>
+
+<section class="period-bar">
+  <div class="seg" role="tablist" aria-label="Period">
+    <button role="tab" [class.active]="grain() === 'all'" (click)="grain.set('all')">All time</button>
+    <button role="tab" [class.active]="grain() === 'monthly'" (click)="grain.set('monthly')">Monthly</button>
+    <button role="tab" [class.active]="grain() === 'quarterly'" (click)="grain.set('quarterly')">Quarterly</button>
+    <button role="tab" [class.active]="grain() === 'yearly'" (click)="grain.set('yearly')">Yearly</button>
+  </div>
+  <label class="period-pick" *ngIf="grain() !== 'all'">
+    <span class="ctrl-label">Year</span>
+    <select [ngModel]="year()" (ngModelChange)="year.set($event)">
+      <option *ngFor="let y of years()" [ngValue]="y">{{ y }}</option>
+    </select>
+  </label>
+  <label class="period-pick" *ngIf="grain() === 'quarterly'">
+    <span class="ctrl-label">Quarter</span>
+    <select [ngModel]="quarter()" (ngModelChange)="quarter.set($event)">
+      <option *ngFor="let q of quarters; let i = index" [ngValue]="i">{{ q }}</option>
+    </select>
+  </label>
+  <label class="period-pick" *ngIf="grain() === 'monthly'">
+    <span class="ctrl-label">Month</span>
+    <select [ngModel]="month()" (ngModelChange)="month.set($event)">
+      <option *ngFor="let m of months; let i = index" [ngValue]="i">{{ m }}</option>
+    </select>
+  </label>
+  <div class="period-end">
+    <span class="period-summary" *ngIf="!loading()">
+      {{ filtered().length }} {{ grain() === 'all' ? 'requests' : 'submitted in ' + periodLabel() }}
+    </span>
     <button class="btn ghost" (click)="load()">Refresh</button>
   </div>
 </section>
@@ -27,7 +57,6 @@
             <div class="card-title">{{ r.arbTitle }}</div>
           </div>
           <div class="card-meta">
-            <app-status-badge *ngIf="lane.statuses.length > 1" [status]="r.status"></app-status-badge>
             <span class="pill" *ngIf="r.pr">
               <span class="pill-key">PR</span>
               <span class="pill-val">{{ r.pr }}</span>

@@ -37,6 +37,7 @@
 
 .side { display: flex; flex-direction: column; gap: 20px; }
 .field { margin-bottom: 14px; }
+.meeting-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .field .label {
   display: block; font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--mute); margin-bottom: 6px;
@@ -59,11 +60,6 @@
   content: ""; position: absolute; left: 5px; top: 16px; bottom: 0; width: 1px; background: var(--line);
 }
 .dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; background: var(--mute); box-shadow: 0 0 0 3px var(--panel); }
-.dot[data-st="PENDING"] { background: var(--st-pending); }
-.dot[data-st="APPROVED FB"] { background: var(--st-fb); }
-.dot[data-st="APPROVED EA"] { background: var(--st-ea); }
-.dot[data-st="FOLLOW UP"] { background: var(--st-follow); }
-.dot[data-st="REWORK"] { background: var(--st-rework); }
 .tl-body { min-width: 0; }
 .tl-line { font-size: 12px; }
 .tl-note { font-size: 13px; margin-top: 2px; }

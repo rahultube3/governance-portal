@@ -5,21 +5,20 @@ Generates 5 records for each artifact type, for each month Jan-July 2026.
 """
 import sqlite3, os
 from calendar import monthrange
-from app import DB_PATH, backfill_request_owners, init_db, now_iso
+from datetime import date, timedelta
+from portal.config import DB_PATH
+from portal.db import now_iso
+from portal.constants import ARTIFACT_TYPES, PDLC_CHECKPOINTS as PDLC
+from portal.schema import init_db
 
 YEAR = 2026
 MONTHS = list(range(1, 8))  # Jan..Jul
 
-ARTIFACT_TYPES = [
-    "Architecture Review Board (ARB) Intake Request",
-    "Data Architecture Intake Request",
-    "Architecture Decision Record (ADR) Submission",
-    "Messaging & Streaming Architecture Intake Request",
-    "AI/ML Architecture Intake Request",
+# Every status except DRAFT, which only a signed-in requestor creates.
+STATUSES = [
+    "SUBMITTED", "IN_REVIEW", "SCHEDULED", "CHIEF_ARCHITECTURE_REVIEW", "CHANGES_REQUESTED",
+    "APPROVED", "APPROVED_WITH_CONDITIONS", "REJECTED", "WITHDRAWN",
 ]
-
-LIFECYCLE = ["PENDING", "APPROVED FB", "APPROVED EA", "FOLLOW UP", "REWORK"]
-PDLC = ["Inception", "Elaboration", "Construction", "Delivery"]
 
 # Per-type seed catalog: 5 title/summary/app tuples per type
 CATALOG = {
@@ -66,11 +65,15 @@ BU_REVIEWERS = ["J. Rivera", "D. Fox", "H. Bello", "N. Osei", "C. Weiss"]
 EA_REVIEWERS = ["S. Kaplan", "V. Iyer", "B. O'Neil", "F. Marchetti", "E. Sato"]
 
 COMMENT_BY_STATUS = {
-    "PENDING": "Awaiting initial review",
-    "APPROVED FB": "Endorsed at BU governance",
-    "APPROVED EA": "EA endorsed, cleared for build",
-    "FOLLOW UP": "Follow-up items requested",
-    "REWORK": "Rework required before re-review",
+    "SUBMITTED": "Awaiting initial review",
+    "IN_REVIEW": "Reviewer assessing the design",
+    "SCHEDULED": "Booked for the next ARB meeting",
+    "CHIEF_ARCHITECTURE_REVIEW": "Escalated for chief architect sign-off",
+    "CHANGES_REQUESTED": "Changes required before re-review",
+    "APPROVED": "Approved, cleared for build",
+    "APPROVED_WITH_CONDITIONS": "Approved; conditions tracked as follow-ups",
+    "REJECTED": "Rejected; design does not meet standards",
+    "WITHDRAWN": "Withdrawn by the requestor",
 }
 
 
@@ -84,17 +87,20 @@ def build_rows():
                 title_base, summary, app_name, app_id = catalog[i]
                 day = min(3 + i * 5, last_day)  # spread across the month
                 submitted = f"{YEAR:04d}-{month:02d}-{day:02d}"
-                status = LIFECYCLE[(month + i) % len(LIFECYCLE)]
+                status = STATUSES[(month + i) % len(STATUSES)]
                 pdlc = PDLC[(month + i) % len(PDLC)]
                 sa = SOLUTION_ARCHITECTS[i % len(SOLUTION_ARCHITECTS)]
                 contrib = CONTRIBUTORS[i % len(CONTRIBUTORS)]
                 bu = BU_REVIEWERS[i % len(BU_REVIEWERS)]
-                ea = EA_REVIEWERS[i % len(EA_REVIEWERS)] if status != "PENDING" else ""
+                ea = EA_REVIEWERS[i % len(EA_REVIEWERS)] if status not in ("SUBMITTED", "WITHDRAWN") else ""
                 seq = f"{YEAR}{month:02d}-{i+1:02d}"
                 trackit = f"TRK-{YEAR}{month:02d}{i+1:02d}"
                 pr = f"PR-{5000 + month * 100 + i}"
-                reviewed = submitted if status != "PENDING" else None
-                approved = submitted if status in ("APPROVED FB", "APPROVED EA") else None
+                reviewed = submitted if status not in ("SUBMITTED", "WITHDRAWN") else None
+                approved = submitted if status in ("APPROVED", "APPROVED_WITH_CONDITIONS") else None
+                # Scheduled requests are booked for the ARB meeting two weeks after submission.
+                meeting = (date.fromisoformat(submitted) + timedelta(days=14)).isoformat() if status == "SCHEDULED" else None
+                meeting_time = f"{10 + i % 5}:00" if meeting else None
                 rows.append(dict(
                     arb_title=f"{title_base} ({seq})",
                     summary=summary,
@@ -113,15 +119,29 @@ def build_rows():
                     ea_gov=ea,
                     status=status,
                     approval_date=approved,
+                    meeting_date=meeting,
+                    meeting_time=meeting_time,
                     comments=COMMENT_BY_STATUS[status],
                 ))
     return rows
 
 
+# Seeded requests belong to the demo requestor whose name matches the solution architect.
+def assign_owners(db: sqlite3.Connection) -> None:
+    db.execute("""
+        UPDATE requests SET created_by = (
+            SELECT u.id FROM users u
+            WHERE u.role = 'REQUESTOR' AND u.name = requests.solution_architect
+        )
+        WHERE created_by IS NULL
+    """)
+    db.commit()
+
+
 def run():
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
-    init_db()
+    init_db(DB_PATH)
     db = sqlite3.connect(DB_PATH)
     ts = now_iso()
     rows = build_rows()
@@ -130,13 +150,13 @@ def run():
             arb_title, summary, artifact_link, pr, app_id, app_name, trackit_id,
             solution_architect, sa_contributors, artifact_type, pdlc_checkpoint,
             date_submitted, date_reviewed, bu_gov_reviewer, ea_gov_reviewer,
-            status, approval_date, comments, created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            status, approval_date, meeting_date, meeting_time, comments, created_at, updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
             s["arb_title"], s["summary"], s["artifact_link"], s["pr"], s["app_id"],
             s["app_name"], s["trackit_id"], s["solution_architect"], s["sa_contributors"],
             s["artifact_type"], s["pdlc_checkpoint"], s["date_submitted"],
             s["date_reviewed"], s["bu_gov"], s["ea_gov"],
-            s["status"], s["approval_date"], s["comments"], ts, ts
+            s["status"], s["approval_date"], s["meeting_date"], s["meeting_time"], s["comments"], ts, ts
         ))
         db.execute(
             "INSERT INTO status_history (request_id, from_status, to_status, note, created_at, updated_at) "
@@ -144,7 +164,7 @@ def run():
             (cur.lastrowid, None, s["status"], "Seeded", ts, ts)
         )
     db.commit()
-    backfill_request_owners(db)
+    assign_owners(db)
     db.close()
     print(f"Seeded {len(rows)} records into {DB_PATH}")
 

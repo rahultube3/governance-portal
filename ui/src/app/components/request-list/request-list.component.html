@@ -13,10 +13,10 @@
   </div>
   <select [(ngModel)]="fStatus" (change)="load()">
     <option value="">All statuses</option>
-    <option *ngFor="let s of meta?.lifecycle" [value]="s">{{ s }}</option>
+    <option *ngFor="let s of statuses.statuses()" [value]="s.code">{{ s.label }}</option>
   </select>
   <select [(ngModel)]="fType" (change)="load()">
-    <option value="">All artifact types</option>
+    <option value="">All review types</option>
     <option *ngFor="let t of meta?.artifactTypes" [value]="t">{{ shortType(t) }}</option>
   </select>
   <button class="btn btn-ghost" (click)="clear()">Clear</button>

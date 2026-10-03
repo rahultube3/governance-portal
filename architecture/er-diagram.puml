@@ -41,8 +41,10 @@ package "Governance requests" #F4F9FB {
     date_reviewed : TEXT
     bu_gov_reviewer : TEXT
     ea_gov_reviewer : TEXT
-    * status : TEXT = 'PENDING'
+    * status : TEXT = 'SUBMITTED' <<FK request_statuses>>
     approval_date : TEXT
+    meeting_date : TEXT
+    meeting_time : TEXT
     comments : TEXT
     .. audit ..
     * created_at : TEXT
@@ -61,7 +63,21 @@ package "Governance requests" #F4F9FB {
     .. audit ..
     * created_at : TEXT
     created_by : INTEGER <<FK users>>
-    updated_at : TEXT
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "request_statuses" as request_statuses {
+    * code : TEXT <<PK>>
+    --
+    * label : TEXT
+    * meaning : TEXT
+    * who_acts : TEXT
+    * position : INTEGER = 0
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
     updated_by : INTEGER <<FK users>>
   }
 }
@@ -72,11 +88,11 @@ package "Identity & access" #FBF8F2 {
     --
     * name : TEXT
     * email : TEXT <<UNIQUE>>
-    * role : TEXT <<CHECK REQUESTOR|REVIEWER|ADMIN>>
+    * role : TEXT <<roles.code>>
     .. audit ..
     * created_at : TEXT
     created_by : INTEGER <<FK users>>
-    updated_at : TEXT
+    * updated_at : TEXT
     updated_by : INTEGER <<FK users>>
   }
 
@@ -102,9 +118,9 @@ package "Identity & access" #FBF8F2 {
     description : TEXT
     * position : INTEGER = 0
     .. audit ..
-    created_at : TEXT
+    * created_at : TEXT
     created_by : INTEGER <<FK users>>
-    updated_at : TEXT
+    * updated_at : TEXT
     updated_by : INTEGER <<FK users>>
   }
 
@@ -114,7 +130,7 @@ package "Identity & access" #FBF8F2 {
     .. audit ..
     * created_at : TEXT
     created_by : INTEGER <<FK users>>
-    updated_at : TEXT
+    * updated_at : TEXT
     updated_by : INTEGER <<FK users>>
   }
 }
@@ -131,9 +147,9 @@ package "Team Board" #F4F8F4 {
     * is_title : INTEGER = 0
     * is_group : INTEGER = 0
     .. audit ..
-    created_at : TEXT
+    * created_at : TEXT
     created_by : INTEGER <<FK users>>
-    updated_at : TEXT
+    * updated_at : TEXT
     updated_by : INTEGER <<FK users>>
   }
 
@@ -152,12 +168,14 @@ package "Team Board" #F4F8F4 {
 
 ' ---- Foreign keys (enforced) ----
 requests ||--o{ status_history : "request_id\nON DELETE CASCADE"
+request_statuses ||--o{ requests : "status"
 roles ||--o{ role_permissions : "role_id\nON DELETE CASCADE"
 permissions ||--o{ role_permissions : "permission_code\nON DELETE CASCADE"
 
 ' ---- Audit foreign keys to users (all ON DELETE SET NULL) ----
 users |o--o{ requests : "created_by /\nupdated_by"
 users |o--o{ status_history : "created_by /\nupdated_by"
+users |o--o{ request_statuses : "created_by /\nupdated_by"
 users |o--o{ roles : "created_by /\nupdated_by"
 users |o--o{ permissions : "created_by /\nupdated_by"
 users |o--o{ role_permissions : "created_by /\nupdated_by"
@@ -176,7 +194,6 @@ legend bottom left
   | dashed line | relationship the app relies on, without a FK constraint |
   | .. audit .. | created_at / created_by / updated_at / updated_by, present on every table |
   | <<FK users>> | audit column; ON DELETE SET NULL. NULL = written by the system (seed or catalog sync) |
-  |  | Audit columns added by migration are nullable in SQLite but backfilled on startup |
   |  | Timestamps are ISO-8601 UTC strings stored as TEXT |
   |  | Access: user → AD group (roles.ad_group) → role → role_permissions → permissions |
 endlegend

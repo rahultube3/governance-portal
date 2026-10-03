@@ -9,7 +9,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   return next(req).pipe(
     catchError((err: unknown) => {
-      if (err instanceof HttpErrorResponse && err.status === 401 && !req.url.startsWith('/api/auth/')) {
+      if (err instanceof HttpErrorResponse && err.status === 401 && !req.url.startsWith('/api/v1/auth/')) {
         auth.clear();
         router.navigate(['/login']);
       }

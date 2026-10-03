@@ -23,7 +23,7 @@
                   placeholder="What is being reviewed and why."></textarea>
       </label>
       <label class="field">
-        <span class="label req">Artifact Type</span>
+        <span class="label req">Review Type</span>
         <select [(ngModel)]="model.artifactType" name="artifactType">
           <option value="" disabled>Select a type…</option>
           <option *ngFor="let t of meta?.artifactTypes" [value]="t">{{ t }}</option>
@@ -99,12 +99,20 @@
       <label class="field" *ngIf="canEditReview">
         <span class="label">Status</span>
         <select [(ngModel)]="model.status" name="status">
-          <option *ngFor="let s of meta?.lifecycle" [value]="s">{{ s }}</option>
+          <option *ngFor="let s of statuses.statuses()" [value]="s.code">{{ s.label }}</option>
         </select>
       </label>
       <label class="field" *ngIf="canEditReview">
         <span class="label">Approval Date</span>
         <input type="date" [(ngModel)]="model.approvalDate" name="approvalDate" />
+      </label>
+      <label class="field" *ngIf="canEditReview">
+        <span class="label" [class.req]="model.status === 'SCHEDULED'">ARB Meeting Date</span>
+        <input type="date" [(ngModel)]="model.meetingDate" name="meetingDate" />
+      </label>
+      <label class="field" *ngIf="canEditReview">
+        <span class="label" [class.req]="model.status === 'SCHEDULED'">ARB Meeting Time</span>
+        <input type="time" [(ngModel)]="model.meetingTime" name="meetingTime" />
       </label>
       <label class="field span-2" *ngIf="canEditReview">
         <span class="label">Comments</span>
@@ -116,6 +124,7 @@
 
   <div class="actions span-2">
     <button type="button" class="btn btn-ghost" (click)="cancel()">Cancel</button>
+    <button *ngIf="!editing" type="button" class="btn btn-ghost" [disabled]="saving" (click)="save(true)">Save draft</button>
     <button type="submit" class="btn btn-primary" [disabled]="saving">
       {{ saving ? 'Saving…' : (editing ? 'Save changes' : 'Submit request') }}
     </button>

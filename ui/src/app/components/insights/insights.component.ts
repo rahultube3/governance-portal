@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GovernanceService } from '../../services/governance.service';
 import { AuthService } from '../../services/auth.service';
-import { GovRequest } from '../../models/request.model';
+import { GovRequest, APPROVED_STATUSES } from '../../models/request.model';
 
 type Grain = 'monthly' | 'quarterly' | 'yearly';
 
@@ -25,7 +25,7 @@ interface TypeRow {
   completionRate: number;
 }
 
-const COMPLETED_STATUSES = new Set(['APPROVED FB', 'APPROVED EA']);
+const COMPLETED_STATUSES = new Set<string>(APPROVED_STATUSES);
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 @Component({

@@ -9,6 +9,7 @@
   border: 1px solid var(--line); color: var(--paper);
 }
 .count b { margin-left: 4px; color: var(--role); }
+[data-role] { --role: var(--st-ea); }
 [data-role="REQUESTOR"] { --role: var(--st-pending); }
 [data-role="REVIEWER"] { --role: var(--st-follow); }
 [data-role="ADMIN"] { --role: var(--cyan); }

@@ -1,5 +1,5 @@
 """
-Sample governance document corpus for the /api/chat assistant.
+Sample governance document corpus for the /api/v1/chat assistant.
 Replace the document contents and URLs with your company's own sources —
 keep the structure (id, title, url, content) so the system prompt builder works.
 """
@@ -16,11 +16,13 @@ DOCUMENTS: list[dict[str, str]] = [
             "and triaged within one business day.\n"
             "Required evidence: a current architecture diagram, the relevant template filled in, "
             "and links to the App ID and TrackIT records. Incomplete evidence is the most common "
-            "cause of REWORK.\n"
-            "Lifecycle: PENDING -> APPROVED FB (business-unit governance) -> APPROVED EA "
-            "(enterprise architecture endorsement). FOLLOW UP means reviewers need more "
-            "information; REWORK means the artifact must be revised and resubmitted on the same "
-            "request so history stays in one place.\n"
+            "cause of Changes Requested.\n"
+            "Lifecycle: Draft (saved, not submitted) -> Submitted (waiting for a reviewer) -> "
+            "In Review -> optionally Scheduled for an Architecture Review Board meeting or "
+            "escalated to Chief Architecture Review for final sign-off -> Approved, Approved with "
+            "Conditions, or Rejected. Changes Requested means the request must be revised and "
+            "resubmitted on the same request so history stays in one place. A requestor can "
+            "withdraw a Draft or Submitted request, which marks it Withdrawn.\n"
             "SLAs: triage within 1 business day, first review within 5 business days, rework "
             "re-review within 3 business days. The review board meets weekly; quorum is three "
             "reviewers including one EA governance representative."

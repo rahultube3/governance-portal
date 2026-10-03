@@ -52,7 +52,7 @@ export class HelpComponent {
   starterQuestions: string[] = [
     'When do I need an ARB review?',
     'Where is the ADR template?',
-    'What does REWORK mean?',
+    'What does Changes Requested mean?',
     'What are the rules for a new Kafka topic?',
   ];
 
@@ -71,7 +71,7 @@ export class HelpComponent {
     this.scrollThread();
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/v1/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: payload }),
@@ -208,10 +208,10 @@ export class HelpComponent {
     },
     {
       q: 'What happens after I submit an intake?',
-      a: 'Your request starts as PENDING, is triaged to the right reviewers, and moves through APPROVED FB and APPROVED EA. You can follow every stage from the Requests page.',
+      a: 'Your request moves from Submitted to In Review. It may be scheduled for an Architecture Review Board meeting or escalated for chief architect sign-off, then ends Approved, Approved with Conditions, or Rejected. You can save a draft first, and withdraw a request until review starts. Follow every stage from the Requests page.',
     },
     {
-      q: 'My request came back as REWORK — now what?',
+      q: 'My request came back as Changes Requested — now what?',
       a: 'Reviewer notes on the request detail page list what needs to change. Update the artifact, then resubmit from the same request so the history stays in one place.',
     },
     {

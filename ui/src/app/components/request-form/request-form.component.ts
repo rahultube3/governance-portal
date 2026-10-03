@@ -5,6 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
 import { AuthService } from '../../services/auth.service';
 import { GovRequest, Meta, LifecycleStatus } from '../../models/request.model';
+import { RequestStatusService } from '../../services/request-status.service';
 
 @Component({
   selector: 'app-request-form',
@@ -36,8 +37,10 @@ export class RequestFormComponent implements OnInit {
     dateReviewed: '',
     buGovReviewer: '',
     eaGovReviewer: '',
-    status: 'PENDING' as LifecycleStatus,
+    status: 'SUBMITTED' as LifecycleStatus,
     approvalDate: '',
+    meetingDate: '',
+    meetingTime: '',
     comments: '',
   };
 
@@ -46,7 +49,10 @@ export class RequestFormComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private auth: AuthService,
-  ) {}
+    public statuses: RequestStatusService,
+  ) {
+    statuses.ensureLoaded();
+  }
 
   ngOnInit(): void {
     this.svc.getMeta().subscribe(m => (this.meta = m));
@@ -66,10 +72,10 @@ export class RequestFormComponent implements OnInit {
     return new Date().toISOString().slice(0, 10);
   }
 
-  save(): void {
+  save(asDraft = false): void {
     this.error = '';
     if (!this.model.arbTitle?.trim()) { this.error = 'ARB Title is required.'; return; }
-    if (!this.model.artifactType) { this.error = 'Artifact Type is required.'; return; }
+    if (!this.model.artifactType) { this.error = 'Review Type is required.'; return; }
 
     this.saving = true;
     const done = (r: GovRequest) => {
@@ -84,7 +90,8 @@ export class RequestFormComponent implements OnInit {
     if (this.editing && this.id) {
       this.svc.update(this.id, this.model).subscribe({ next: done, error: fail });
     } else {
-      this.svc.create(this.model).subscribe({ next: done, error: fail });
+      const status: LifecycleStatus = asDraft ? 'DRAFT' : this.canEditReview ? this.model.status : 'SUBMITTED';
+      this.svc.create({ ...this.model, status }).subscribe({ next: done, error: fail });
     }
   }
 

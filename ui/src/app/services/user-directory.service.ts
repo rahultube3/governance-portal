@@ -15,7 +15,7 @@ export class UserDirectoryService {
 
   refresh(): void {
     this.loaded = true;
-    this.http.get<User[]>('/api/auth/users')
+    this.http.get<User[]>('/api/v1/auth/users')
       .subscribe(list => this.names.set(new Map(list.map(u => [u.id, u.name]))));
   }
 

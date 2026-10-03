@@ -18,21 +18,19 @@
     <span class="mono mute">{{ stats?.total ?? 0 }} total in flight</span>
   </div>
   <div class="rail">
-    <ng-container *ngFor="let s of lifecycle; let i = index; let last = last">
-      <a class="stage" [attr.data-st]="stageKey[s]" routerLink="/requests" [queryParams]="{status: s}">
-        <span class="stage-count">{{ count(s) }}</span>
-        <span class="stage-name mono">{{ s }}</span>
-      </a>
-      <span class="arrow mono" *ngIf="!last" aria-hidden="true">→</span>
-    </ng-container>
+    <a class="stage" *ngFor="let s of statuses.statuses()" [style.border-top-color]="statusColor[s.code]"
+       routerLink="/requests" [queryParams]="{status: s.code}" [title]="s.meaning + ' · Who acts: ' + s.whoActs">
+      <span class="stage-count">{{ count(s.code) }}</span>
+      <span class="stage-name mono">{{ s.label }}</span>
+    </a>
   </div>
 </section>
 
 <div class="grid">
-  <!-- By artifact type -->
+  <!-- By review type -->
   <section class="panel block">
     <div class="block-head">
-      <h3>By artifact type</h3>
+      <h3>By review type</h3>
     </div>
     <ul class="type-list">
       <li *ngFor="let t of typeEntries()">

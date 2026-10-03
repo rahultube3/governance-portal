@@ -1,10 +1,13 @@
 <div class="head">
-  <p class="eyebrow">Administration</p>
-  <h1>Roles &amp; permissions</h1>
-  <p class="mute sub">
-    Each role is granted to the members of its Azure AD group. When someone signs in, the portal reads
-    their AD groups, finds the roles mapped to those groups, and allows only the permissions ticked below.
-  </p>
+  <div>
+    <p class="eyebrow">Administration</p>
+    <h1>Roles &amp; permissions</h1>
+    <p class="mute sub">
+      Each role is granted to the members of its Azure AD group. When someone signs in, the portal reads
+      their AD groups, finds the roles mapped to those groups, and allows only the permissions ticked below.
+    </p>
+  </div>
+  <button type="button" class="btn btn-primary" *ngIf="snapshot() && !creating()" (click)="openCreate()">New role</button>
 </div>
 
 <p class="banner error" *ngIf="error()">{{ error() }}</p>
@@ -13,25 +16,46 @@
 <p class="mute" *ngIf="!snapshot() && !error()">Loading…</p>
 
 <ng-container *ngIf="snapshot()">
-  <section class="groups">
-    <article class="panel group" *ngFor="let r of roles()" [attr.data-role]="r.code">
-      <header>
-        <h3>{{ r.name }}</h3>
-        <span class="members mono">{{ r.memberCount }} {{ r.memberCount === 1 ? 'member' : 'members' }}</span>
-      </header>
-      <p class="mute desc">{{ r.description }}</p>
-      <label class="group-field">
-        <span class="label">Azure AD group</span>
-        <div class="group-row">
-          <input [(ngModel)]="groupDrafts[r.code]" [name]="'group-' + r.code"
-                 placeholder="Group name or object ID" (keydown.enter)="groupChanged(r) && saveGroup(r)" />
-          <button type="button" class="btn btn-primary" [disabled]="saving() || !groupChanged(r)" (click)="saveGroup(r)">Save</button>
-        </div>
+  <form class="panel new-role" *ngIf="creating()" (ngSubmit)="createRole()">
+    <h3>New role</h3>
+    <div class="role-fields">
+      <label>
+        <span class="label">Name</span>
+        <input name="name" [ngModel]="newRole.name" (ngModelChange)="setRoleName($event)" placeholder="Security Reviewer" required />
       </label>
-      <p class="warn" *ngIf="!r.adGroup">Not mapped — nobody receives this role.</p>
-      <div class="role-audit"><span class="label">Last changed</span><app-audit-stamp [record]="r" [compact]="true"></app-audit-stamp></div>
-    </article>
-  </section>
+      <label>
+        <span class="label">Code</span>
+        <input name="code" class="mono" [ngModel]="newRole.code" (ngModelChange)="setRoleCode($event)" placeholder="SECURITY_REVIEWER" maxlength="32" required />
+      </label>
+      <label>
+        <span class="label">Azure AD group</span>
+        <input name="adGroup" class="mono" [(ngModel)]="newRole.adGroup" placeholder="Group name or object ID" maxlength="256" />
+      </label>
+      <label class="wide">
+        <span class="label">Description</span>
+        <input name="description" [(ngModel)]="newRole.description" placeholder="What this role is for" />
+      </label>
+    </div>
+    <p class="warn" *ngIf="!newRole.adGroup.trim()">Without an AD group, nobody receives this role.</p>
+
+    <span class="label perms-label">Permissions</span>
+    <div class="new-perms">
+      <div class="perm-group" *ngFor="let cat of categories()">
+        <span class="perm-cat">{{ cat.name }}</span>
+        <label class="perm-check" *ngFor="let p of cat.permissions" [title]="p.description">
+          <input type="checkbox" [checked]="newRole.permissions.includes(p.code)" (change)="toggleNew(p.code)" />
+          {{ p.label }}
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" [disabled]="saving()" (click)="creating.set(false)">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || !newRole.name.trim() || !newRole.code.trim()">
+        {{ saving() ? 'Creating…' : 'Create role' }}
+      </button>
+    </div>
+  </form>
 
   <section class="panel matrix-wrap">
     <table class="matrix">

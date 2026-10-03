@@ -18,6 +18,7 @@
 .group header { margin-bottom: 10px; }
 .group h2 { font-size: 15px; }
 .group header p { margin: 2px 0 0; font-size: 12.5px; }
+.group[data-role] { --role: var(--st-ea); }
 .group[data-role="REQUESTOR"] { --role: var(--st-pending); }
 .group[data-role="REVIEWER"] { --role: var(--st-follow); }
 .group[data-role="ADMIN"] { --role: var(--cyan); }

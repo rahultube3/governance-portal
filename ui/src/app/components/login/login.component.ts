@@ -2,13 +2,9 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { ROLES, ROLE_LABELS, Role, User } from '../../models/user.model';
-
-const ROLE_BLURBS: Record<Role, string> = {
-  REQUESTOR: 'Submit intakes and track your own requests.',
-  REVIEWER: 'Review the queue and move requests through the lifecycle.',
-  ADMIN: 'Full access, including users and roles.',
-};
+import { forkJoin } from 'rxjs';
+import { RoleInfo } from '../../models/rbac.model';
+import { User } from '../../models/user.model';
 
 @Component({
   selector: 'app-login',
@@ -19,22 +15,23 @@ const ROLE_BLURBS: Record<Role, string> = {
 })
 export class LoginComponent implements OnInit {
   users = signal<User[]>([]);
+  roles = signal<RoleInfo[]>([]);
   loading = signal(true);
   error = signal('');
   signingIn = signal<number | null>(null);
 
-  groups = computed(() => ROLES.map(role => ({
-    role,
-    label: ROLE_LABELS[role],
-    blurb: ROLE_BLURBS[role],
-    users: this.users().filter(u => u.role === role),
+  groups = computed(() => this.roles().map(r => ({
+    role: r.code,
+    label: r.name,
+    blurb: r.description,
+    users: this.users().filter(u => u.role === r.code),
   })));
 
   constructor(private auth: AuthService, private router: Router) {}
 
   ngOnInit(): void {
-    this.auth.directory().subscribe({
-      next: list => { this.users.set(list); this.loading.set(false); },
+    forkJoin({ users: this.auth.directory(), roles: this.auth.roles() }).subscribe({
+      next: ({ users, roles }) => { this.users.set(users); this.roles.set(roles); this.loading.set(false); },
       error: () => { this.error.set('Could not reach the API. Is it running?'); this.loading.set(false); },
     });
   }

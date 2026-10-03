@@ -12,9 +12,10 @@
     </div>
     <div class="head-side">
       <app-status-badge [status]="req.status"></app-status-badge>
-      <div class="head-actions" *ngIf="auth.canEdit(req) || auth.canDelete(req)">
+      <div class="head-actions" *ngIf="auth.canEdit(req) || auth.canWithdraw(req) || auth.canDelete()">
         <a *ngIf="auth.canEdit(req)" [routerLink]="['/requests', req.id, 'edit']" class="btn btn-ghost">Edit</a>
-        <button *ngIf="auth.canDelete(req)" class="btn btn-ghost btn-danger" (click)="confirmDelete = true">Delete</button>
+        <button *ngIf="auth.canWithdraw(req)" class="btn btn-ghost btn-danger" (click)="confirmWithdraw = true">Withdraw</button>
+        <button *ngIf="auth.canDelete()" class="btn btn-ghost btn-danger" (click)="confirmDelete = true">Delete</button>
       </div>
     </div>
   </div>
@@ -49,32 +50,51 @@
         <label class="field">
           <span class="label">Move to status</span>
           <select [(ngModel)]="newStatus">
-            <option *ngFor="let s of meta?.lifecycle" [value]="s">{{ s }}</option>
+            <option *ngFor="let s of reviewStatuses()" [value]="s.code">{{ s.label }}</option>
           </select>
         </label>
+        <p class="mute act-help" *ngIf="statusInfo(newStatus) as info">{{ info.meaning }} · Who acts: {{ info.whoActs }}</p>
+        <div class="meeting-row" *ngIf="newStatus === 'SCHEDULED'">
+          <label class="field">
+            <span class="label">ARB meeting date</span>
+            <input type="date" [(ngModel)]="meetingDate" required />
+          </label>
+          <label class="field">
+            <span class="label">Time</span>
+            <input type="time" [(ngModel)]="meetingTime" required />
+          </label>
+        </div>
         <label class="field">
           <span class="label">Note (optional)</span>
           <textarea [(ngModel)]="statusNote" placeholder="Reason for the transition"></textarea>
         </label>
         <button class="btn btn-primary full" (click)="applyStatus()"
-                [disabled]="updating || newStatus === req.status">
-          {{ updating ? 'Updating…' : 'Apply transition' }}
+                [disabled]="!canApply()">
+          {{ updating ? 'Updating…' : (newStatus === 'SCHEDULED' && req.status === 'SCHEDULED' ? 'Reschedule' : 'Apply transition') }}
+        </button>
+      </section>
+
+      <section class="panel act-card" *ngIf="auth.canSubmitDraft(req)">
+        <h3 class="card-title">Submit for review</h3>
+        <p class="mute act-help">This is a draft, so reviewers can't see it yet. Submit it when it's ready.</p>
+        <button class="btn btn-primary full" (click)="submit()" [disabled]="updating">
+          {{ updating ? 'Submitting…' : 'Submit request' }}
         </button>
       </section>
 
       <section class="panel act-card" *ngIf="auth.canResubmit(req)">
         <h3 class="card-title">Resubmit for review</h3>
-        <p class="mute act-help">Reviewers sent this back for rework. Update the request, then resubmit it.</p>
+        <p class="mute act-help">Reviewers requested changes. Update the request, then resubmit it.</p>
         <label class="field">
           <span class="label">What changed (optional)</span>
-          <textarea [(ngModel)]="statusNote" placeholder="Summary of the rework"></textarea>
+          <textarea [(ngModel)]="statusNote" placeholder="Summary of the changes"></textarea>
         </label>
-        <button class="btn btn-primary full" (click)="resubmit()" [disabled]="updating">
-          {{ updating ? 'Resubmitting…' : 'Resubmit as PENDING' }}
+        <button class="btn btn-primary full" (click)="submit()" [disabled]="updating">
+          {{ updating ? 'Resubmitting…' : 'Resubmit for review' }}
         </button>
       </section>
 
-      <p class="mute act-help" *ngIf="auth.can('request:review') && auth.owns(req)">
+      <p class="mute act-help" *ngIf="auth.can('request:review', 'request:schedule') && auth.owns(req)">
         You submitted this request, so another reviewer has to review it.
       </p>
 
@@ -82,10 +102,10 @@
         <h3 class="card-title">History</h3>
         <ol class="timeline">
           <li *ngFor="let h of req.history">
-            <span class="dot" [attr.data-st]="h.to_status"></span>
+            <span class="dot" [style.background]="statusColor[h.to_status]"></span>
             <div class="tl-body">
               <div class="tl-line mono">
-                <span *ngIf="h.from_status">{{ h.from_status }} → </span>{{ h.to_status }}
+                <span *ngIf="h.from_status">{{ statuses.label(h.from_status) }} → </span>{{ statuses.label(h.to_status) }}
               </div>
               <div class="tl-note" *ngIf="h.note">{{ h.note }}</div>
               <div class="tl-time mono mute">{{ h.created_at | date: 'd MMM y, HH:mm' }} · {{ dir.name(h.created_by) }}</div>
@@ -97,6 +117,18 @@
     </aside>
   </div>
 </ng-container>
+
+<!-- withdraw confirm -->
+<div class="modal-mask" *ngIf="confirmWithdraw" (click)="confirmWithdraw = false">
+  <div class="modal panel" (click)="$event.stopPropagation()">
+    <h3>Withdraw this request?</h3>
+    <p class="mute">It will be marked Withdrawn and leave the review queue. The request and its history are kept.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" (click)="confirmWithdraw = false">Keep it</button>
+      <button class="btn btn-primary btn-danger" (click)="withdraw()">Withdraw request</button>
+    </div>
+  </div>
+</div>
 
 <!-- delete confirm -->
 <div class="modal-mask" *ngIf="confirmDelete" (click)="confirmDelete = false">

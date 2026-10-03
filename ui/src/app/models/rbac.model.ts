@@ -35,8 +35,16 @@ export interface RoleSummary {
   adGroup: string;
 }
 
-export interface RolePatch {
-  name?: string;
-  adGroup?: string;
-  description?: string;
+export interface RoleInfo {
+  code: Role;
+  name: string;
+  description: string;
+}
+
+export interface RoleInput {
+  code: Role;
+  name: string;
+  adGroup: string;
+  description: string;
+  permissions: Permission[];
 }

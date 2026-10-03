@@ -1,14 +1,7 @@
 import { Audited } from './audit.model';
 
-export type Role = 'REQUESTOR' | 'REVIEWER' | 'ADMIN';
-
-export const ROLES: Role[] = ['REQUESTOR', 'REVIEWER', 'ADMIN'];
-
-export const ROLE_LABELS: Record<Role, string> = {
-  REQUESTOR: 'Requestor',
-  REVIEWER: 'Reviewer',
-  ADMIN: 'Admin',
-};
+// Role codes come from the `roles` table; admins can add new ones.
+export type Role = string;
 
 export type Permission =
   | 'request:create'
@@ -20,6 +13,8 @@ export type Permission =
   | 'request:delete:all'
   | 'request:resubmit'
   | 'request:review'
+  | 'request:schedule'
+  | 'calendar:view'
   | 'board:card:edit'
   | 'board:field:manage'
   | 'insights:view'

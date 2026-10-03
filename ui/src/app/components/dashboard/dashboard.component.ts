@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
 import { AuthService } from '../../services/auth.service';
-import { Stats, GovRequest, LifecycleStatus } from '../../models/request.model';
+import { Stats, GovRequest, STATUS_COLOR } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
+import { RequestStatusService } from '../../services/request-status.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,14 +19,11 @@ export class DashboardComponent implements OnInit {
   recent: GovRequest[] = [];
   loading = true;
 
-  lifecycle: LifecycleStatus[] = ['PENDING', 'APPROVED FB', 'APPROVED EA', 'FOLLOW UP', 'REWORK'];
+  readonly statusColor = STATUS_COLOR;
 
-  stageKey: Record<string, string> = {
-    'PENDING': 'pending', 'APPROVED FB': 'fb', 'APPROVED EA': 'ea',
-    'FOLLOW UP': 'follow', 'REWORK': 'rework',
-  };
-
-  constructor(private svc: GovernanceService, public auth: AuthService) {}
+  constructor(private svc: GovernanceService, public auth: AuthService, public statuses: RequestStatusService) {
+    statuses.ensureLoaded();
+  }
 
   ngOnInit(): void {
     this.svc.getStats().subscribe(s => (this.stats = s));

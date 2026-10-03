@@ -5,7 +5,7 @@ import { GovRequest, Meta, Stats, LifecycleStatus } from '../models/request.mode
 
 @Injectable({ providedIn: 'root' })
 export class GovernanceService {
-  private base = '/api';
+  private base = '/api/v1';
 
   constructor(private http: HttpClient) {}
 
@@ -37,8 +37,9 @@ export class GovernanceService {
     return this.http.put<GovRequest>(`${this.base}/requests/${id}`, req);
   }
 
-  changeStatus(id: number, status: LifecycleStatus, note?: string): Observable<GovRequest> {
-    return this.http.patch<GovRequest>(`${this.base}/requests/${id}/status`, { status, note });
+  changeStatus(id: number, status: LifecycleStatus, note?: string,
+               meeting?: { meetingDate: string; meetingTime: string }): Observable<GovRequest> {
+    return this.http.patch<GovRequest>(`${this.base}/requests/${id}/status`, { status, note, ...meeting });
   }
 
   remove(id: number): Observable<{ deleted: number }> {

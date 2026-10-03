@@ -5,7 +5,7 @@ import { ManagedUser, UserInput } from '../models/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
-  private base = '/api/users';
+  private base = '/api/v1/users';
 
   constructor(private http: HttpClient) {}
 

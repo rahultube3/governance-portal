@@ -1,6 +1,6 @@
 :host { display: block; }
 
-.head { margin-bottom: 20px; }
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .head h1 { font-size: 26px; margin-top: 4px; }
 .sub { margin: 8px 0 0; font-size: 13.5px; max-width: 760px; line-height: 1.55; }
 
@@ -16,26 +16,31 @@
   background: color-mix(in srgb, var(--st-ea) 10%, transparent);
 }
 
+[data-role] { --role: var(--st-ea); }
 [data-role="REQUESTOR"] { --role: var(--st-pending); }
 [data-role="REVIEWER"] { --role: var(--st-follow); }
 [data-role="ADMIN"] { --role: var(--cyan); }
 
-.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 18px; }
-.group { padding: 16px; border-top: 3px solid var(--role); }
-.group header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.group h3 { font-size: 15px; }
-.members { font-size: 11px; color: var(--mute); }
-.desc { font-size: 12.5px; margin: 4px 0 12px; }
-.group-field { display: block; }
+.new-role { padding: 16px; margin-bottom: 18px; }
+.new-role h3 { font-size: 15px; margin-bottom: 12px; }
+.role-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.role-fields .wide { grid-column: 1 / -1; }
 .label {
   display: block; font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--mute); margin-bottom: 6px;
 }
-.group-row { display: flex; gap: 8px; }
-.group-row input { font-family: var(--ff-mono); font-size: 13px; padding: 8px 10px; }
 .warn { margin: 8px 0 0; font-size: 12px; color: var(--st-follow); }
-.role-audit { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
-.role-audit .label { margin-bottom: 4px; }
+.perms-label { margin-top: 16px; }
+.new-perms { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 18px; }
+.perm-group { display: flex; flex-direction: column; gap: 6px; }
+.perm-cat { font-size: 12px; color: var(--cyan); }
+.perm-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--paper); cursor: pointer; }
+.perm-check input { width: 16px; height: 16px; padding: 0; accent-color: var(--cyan); }
+.form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+@media (max-width: 760px) {
+  .role-fields { grid-template-columns: 1fr; }
+}
 
 .matrix-wrap { overflow-x: auto; }
 .matrix { min-width: 640px; }
