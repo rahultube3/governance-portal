@@ -1,0 +1,91 @@
+<p class="error" *ngIf="error()">{{ error() }}</p>
+
+<form class="panel add" (ngSubmit)="add()">
+  <h3>Add reference link name</h3>
+  <div class="add-row">
+    <input name="label" [(ngModel)]="draft.label" placeholder="e.g. Threat Model" maxlength="120" />
+    <button type="submit" class="btn btn-primary" [disabled]="busy() || !draft.label.trim()">Add</button>
+  </div>
+  <p class="mute help" style="margin: 10px 0 0">Required for (optional):</p>
+  <div class="checks">
+    <label class="check" *ngFor="let t of typeChoices(draft.requiredFor)">
+      <input type="checkbox" [checked]="draft.requiredFor.includes(t.name)"
+             (change)="draft.requiredFor = toggleType(draft.requiredFor, t.name, $any($event.target).checked)" />
+      {{ t.name }}
+    </label>
+  </div>
+</form>
+
+<div class="panel table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 70px">Order</th>
+        <th style="width: 200px">Name</th>
+        <th>Required for</th>
+        <th style="width: 110px">Used by</th>
+        <th style="width: 100px">Status</th>
+        <th style="width: 180px">Last updated</th>
+        <th style="width: 280px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let n of names(); let i = index; let last = last" [class.inactive]="!n.active">
+        <td>
+          <div class="order">
+            <button type="button" class="icon" [disabled]="busy() || i === 0" (click)="move(i, -1)" [attr.aria-label]="'Move ' + n.label + ' up'">↑</button>
+            <button type="button" class="icon" [disabled]="busy() || last" (click)="move(i, 1)" [attr.aria-label]="'Move ' + n.label + ' down'">↓</button>
+          </div>
+        </td>
+        <td class="name">
+          <ng-container *ngIf="editingCode === n.code; else showLabel">
+            <input [(ngModel)]="edit.label" [name]="'label' + n.code" maxlength="120" [attr.aria-label]="'New name for ' + n.label" />
+          </ng-container>
+          <ng-template #showLabel>{{ n.label }} <div class="code mono mute">{{ n.code }}</div></ng-template>
+        </td>
+        <td>
+          <div class="checks" *ngIf="editingCode === n.code; else showTypes" style="margin-top: 0">
+            <label class="check" *ngFor="let t of typeChoices(edit.requiredFor)">
+              <input type="checkbox" [checked]="edit.requiredFor.includes(t.name)"
+                     (change)="edit.requiredFor = toggleType(edit.requiredFor, t.name, $any($event.target).checked)" />
+              {{ t.name }}
+            </label>
+          </div>
+          <ng-template #showTypes>
+            <div class="chips" *ngIf="n.requiredFor.length; else none">
+              <span class="chip" *ngFor="let t of n.requiredFor">{{ t }}</span>
+            </div>
+            <ng-template #none><span class="mute">—</span></ng-template>
+          </ng-template>
+        </td>
+        <td class="num mute">{{ n.inUse }} {{ n.inUse === 1 ? 'request' : 'requests' }}</td>
+        <td><span class="state" [class.on]="n.active">{{ n.active ? 'Active' : 'Inactive' }}</span></td>
+        <td><app-audit-stamp [record]="n" [compact]="true"></app-audit-stamp></td>
+        <td>
+          <div class="actions" *ngIf="editingCode === n.code">
+            <button type="button" class="btn btn-ghost" (click)="editingCode = null">Cancel</button>
+            <button type="button" class="btn btn-primary" [disabled]="busy() || !edit.label.trim()" (click)="saveEdit(n)">Save</button>
+          </div>
+          <div class="actions" *ngIf="editingCode !== n.code && confirmCode === n.code">
+            <button type="button" class="btn btn-ghost" (click)="confirmCode = null">Keep</button>
+            <button type="button" class="btn btn-primary btn-danger" [disabled]="busy()" (click)="remove(n)">Remove {{ n.label }}</button>
+          </div>
+          <div class="actions" *ngIf="editingCode !== n.code && confirmCode !== n.code">
+            <button type="button" class="btn btn-ghost" (click)="startEdit(n)">Edit</button>
+            <button type="button" class="btn btn-ghost" [class.btn-danger]="n.active" [disabled]="busy()" (click)="toggle(n)">
+              {{ n.active ? 'Deactivate' : 'Activate' }}
+            </button>
+            <button type="button" class="btn btn-ghost btn-danger" [disabled]="n.inUse > 0"
+                    [title]="n.inUse ? 'Used by ' + n.inUse + ' requests; deactivate it instead' : 'Remove ' + n.label"
+                    (click)="confirmCode = n.code">Remove</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="mute empty" *ngIf="loading()">Loading…</p>
+</div>
+<p class="mute help">
+  Shown in the reference dropdown in this order. A review type listed under "Required for" must carry that reference
+  link before its request leaves Draft; deactivated names stop counting as required.
+</p>

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
 import { AuthService } from '../../services/auth.service';
-import { Stats, GovRequest, STATUS_COLOR } from '../../models/request.model';
+import { Stats, GovRequest, statusColor } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
 import { RequestStatusService } from '../../services/request-status.service';
 
@@ -19,7 +19,7 @@ export class DashboardComponent implements OnInit {
   recent: GovRequest[] = [];
   loading = true;
 
-  readonly statusColor = STATUS_COLOR;
+  readonly statusColor = statusColor;
 
   constructor(private svc: GovernanceService, public auth: AuthService, public statuses: RequestStatusService) {
     statuses.ensureLoaded();
@@ -45,6 +45,6 @@ export class DashboardComponent implements OnInit {
   shortType(t: string): string {
     const m = t.match(/\(([^)]+)\)/);
     if (m) return m[1];
-    return t.replace(/ (Intake Request|Submission)$/,'').trim();
+    return t;
   }
 }

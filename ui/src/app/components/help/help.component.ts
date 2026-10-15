@@ -140,7 +140,7 @@ export class HelpComponent {
       title: 'ARB Intake & Review',
       summary:
         'When a review is required, what evidence to attach, review board quorum, and the SLA for each lifecycle stage.',
-      appliesTo: ['ARB', 'All intakes'],
+      appliesTo: ['All intakes'],
       url: 'https://wiki.example.com/architecture/standards/arb-intake-review',
     },
     {
@@ -156,7 +156,7 @@ export class HelpComponent {
       title: 'API & Integration Design',
       summary:
         'REST and contract conventions, versioning and deprecation policy, error model, and gateway onboarding requirements.',
-      appliesTo: ['ARB', 'ADR'],
+      appliesTo: ['API', 'SAD'],
       url: 'https://wiki.example.com/architecture/standards/api-design',
     },
     {
@@ -172,7 +172,7 @@ export class HelpComponent {
       title: 'Messaging & Event Streams',
       summary:
         'Topic naming, schema registry usage, compatibility rules, and delivery guarantees for event-driven integrations.',
-      appliesTo: ['Messaging'],
+      appliesTo: ['Event-Driven'],
       url: 'https://wiki.example.com/architecture/standards/messaging-events',
     },
     {
@@ -208,7 +208,7 @@ export class HelpComponent {
     },
     {
       q: 'What happens after I submit an intake?',
-      a: 'Your request moves from Submitted to In Review. It may be scheduled for an Architecture Review Board meeting or escalated for chief architect sign-off, then ends Approved, Approved with Conditions, or Rejected. You can save a draft first, and withdraw a request until review starts. Follow every stage from the Requests page.',
+      a: 'It depends on the risk tier you chose. Low: an agent checks the intake right away and approves it if it passes; if not, a reviewer decides. Medium and High: a reviewer assesses it, it goes to an Architecture Review Board meeting, and a reviewer decides. Critical: the same, then the Chief Architect makes the final decision. Every request ends Approved, Approved with Conditions, or Rejected. You can save a draft first, and withdraw a request until review starts. Follow every stage from the Requests page.',
     },
     {
       q: 'My request came back as Changes Requested — now what?',

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { GovRequest, Meta, Stats, LifecycleStatus } from '../models/request.model';
+import { GovRequest, Meta, Stats, LifecycleStatus, RiskTier } from '../models/request.model';
 
 @Injectable({ providedIn: 'root' })
 export class GovernanceService {
@@ -40,6 +40,10 @@ export class GovernanceService {
   changeStatus(id: number, status: LifecycleStatus, note?: string,
                meeting?: { meetingDate: string; meetingTime: string }): Observable<GovRequest> {
     return this.http.patch<GovRequest>(`${this.base}/requests/${id}/status`, { status, note, ...meeting });
+  }
+
+  setTier(id: number, tier: RiskTier, reason: string): Observable<GovRequest> {
+    return this.http.patch<GovRequest>(`${this.base}/requests/${id}/tier`, { tier, reason });
   }
 
   remove(id: number): Observable<{ deleted: number }> {

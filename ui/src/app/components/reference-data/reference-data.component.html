@@ -1,0 +1,23 @@
+<div class="head">
+  <div>
+    <p class="eyebrow">Administration</p>
+    <h1>Reference Data</h1>
+    <p class="mute sub">
+      The lists behind the intake form. Deactivating an entry hides it from new requests and keeps it on requests that
+      already use it; an entry no request uses can be removed.
+    </p>
+  </div>
+</div>
+
+<nav class="tabs" role="tablist">
+  <button *ngFor="let t of tabs" type="button" role="tab" class="tab" [class.on]="tab() === t.key"
+          [attr.aria-selected]="tab() === t.key" (click)="open(t.key)">{{ t.label }}</button>
+</nav>
+
+<ng-container [ngSwitch]="tab()">
+  <app-option-list *ngSwitchCase="'review-types'" list="review-types" noun="review type"></app-option-list>
+  <app-option-list *ngSwitchCase="'pdlc'" list="pdlc-checkpoints" noun="PDLC checkpoint" [ordered]="true"></app-option-list>
+  <app-reference-links *ngSwitchCase="'reference-links'"></app-reference-links>
+  <app-reviewers-tab *ngSwitchCase="'reviewers'"></app-reviewers-tab>
+  <app-statuses-tab *ngSwitchCase="'statuses'"></app-statuses-tab>
+</ng-container>

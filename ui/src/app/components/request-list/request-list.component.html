@@ -17,7 +17,7 @@
   </select>
   <select [(ngModel)]="fType" (change)="load()">
     <option value="">All review types</option>
-    <option *ngFor="let t of meta?.artifactTypes" [value]="t">{{ shortType(t) }}</option>
+    <option *ngFor="let t of meta?.artifactTypes" [value]="t.name">{{ shortType(t.name) }}</option>
   </select>
   <button class="btn btn-ghost" (click)="clear()">Clear</button>
 </div>
@@ -32,6 +32,7 @@
         <th>TrackIT</th>
         <th>Architect</th>
         <th>Submitted</th>
+        <th>Risk</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -46,6 +47,7 @@
         <td class="mono">{{ r.trackitId || '—' }}</td>
         <td>{{ r.solutionArchitect || '—' }}</td>
         <td class="mono">{{ r.dateSubmitted || '—' }}</td>
+        <td><app-tier-badge [tier]="r.riskTier"></app-tier-badge></td>
         <td><app-status-badge [status]="r.status"></app-status-badge></td>
       </tr>
     </tbody>

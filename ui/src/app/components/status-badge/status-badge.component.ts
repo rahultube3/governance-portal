@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { LifecycleStatus, STATUS_COLOR } from '../../models/request.model';
+import { LifecycleStatus, statusColor } from '../../models/request.model';
 import { RequestStatusService } from '../../services/request-status.service';
 
 @Component({
@@ -29,6 +29,6 @@ export class StatusBadgeComponent {
   }
 
   get color(): string {
-    return STATUS_COLOR[this.status];
+    return statusColor(this.status);
   }
 }

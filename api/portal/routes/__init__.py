@@ -1,3 +1,3 @@
-from portal.routes import auth, board, chat, meta, rbac, requests, users
+from portal.routes import auth, board, chat, meta, rbac, reference, requests, users
 
-BLUEPRINTS = [meta.bp, auth.bp, users.bp, rbac.bp, requests.bp, chat.bp, board.bp]
+BLUEPRINTS = [meta.bp, auth.bp, users.bp, rbac.bp, requests.bp, chat.bp, board.bp, reference.bp]

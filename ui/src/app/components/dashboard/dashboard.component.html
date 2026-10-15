@@ -2,7 +2,7 @@
   <p class="eyebrow">Brokerage Architecture</p>
   <h1>Every architecture decision, reviewed and on the record.</h1>
   <p class="lede mute">
-    Submit ARB, ADR, data, messaging, and AI/ML artifacts for review, then track each one as it
+    Submit solution, ADR, event-driven, AI/ML, API, data and other architecture artifacts for review, then track each one as it
     moves through the governance lifecycle.
   </p>
   <div class="hero-actions">
@@ -18,7 +18,7 @@
     <span class="mono mute">{{ stats?.total ?? 0 }} total in flight</span>
   </div>
   <div class="rail">
-    <a class="stage" *ngFor="let s of statuses.statuses()" [style.border-top-color]="statusColor[s.code]"
+    <a class="stage" *ngFor="let s of statuses.statuses()" [style.border-top-color]="statusColor(s.code)"
        routerLink="/requests" [queryParams]="{status: s.code}" [title]="s.meaning + ' · Who acts: ' + s.whoActs">
       <span class="stage-count">{{ count(s.code) }}</span>
       <span class="stage-name mono">{{ s.label }}</span>

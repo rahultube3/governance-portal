@@ -1,0 +1,61 @@
+<p class="error" *ngIf="error()">{{ error() }}</p>
+
+<form class="panel add" (ngSubmit)="add()">
+  <h3>Add reviewer</h3>
+  <div class="add-row" style="grid-template-columns: 1fr 260px auto">
+    <input name="name" [(ngModel)]="draft.name" placeholder="Full name" maxlength="120" />
+    <select name="role" [(ngModel)]="draft.role" aria-label="Role">
+      <option *ngFor="let r of roles()" [value]="r.code">{{ r.label }}</option>
+    </select>
+    <button type="submit" class="btn btn-primary" [disabled]="busy() || !draft.name.trim()">Add</button>
+  </div>
+</form>
+
+<div class="panel table-wrap" *ngFor="let g of groups()">
+  <h3 class="group-title">{{ g.role.label }}</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th style="width: 110px">Used by</th>
+        <th style="width: 100px">Status</th>
+        <th style="width: 190px">Last updated</th>
+        <th style="width: 280px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of g.reviewers" [class.inactive]="!r.active">
+        <td class="name">
+          <input *ngIf="editingId === r.id; else showName" [(ngModel)]="editName" [name]="'edit' + r.id" maxlength="120"
+                 (keydown.enter)="saveEdit(r)" (keydown.escape)="editingId = null" [attr.aria-label]="'New name for ' + r.name" />
+          <ng-template #showName>{{ r.name }}</ng-template>
+        </td>
+        <td class="num mute">{{ r.inUse }} {{ r.inUse === 1 ? 'request' : 'requests' }}</td>
+        <td><span class="state" [class.on]="r.active">{{ r.active ? 'Active' : 'Inactive' }}</span></td>
+        <td><app-audit-stamp [record]="r" [compact]="true"></app-audit-stamp></td>
+        <td>
+          <div class="actions" *ngIf="editingId === r.id">
+            <button type="button" class="btn btn-ghost" (click)="editingId = null">Cancel</button>
+            <button type="button" class="btn btn-primary" [disabled]="busy() || !editName.trim()" (click)="saveEdit(r)">Save</button>
+          </div>
+          <div class="actions" *ngIf="editingId !== r.id && confirmId === r.id">
+            <button type="button" class="btn btn-ghost" (click)="confirmId = null">Keep</button>
+            <button type="button" class="btn btn-primary btn-danger" [disabled]="busy()" (click)="remove(r)">Remove {{ r.name }}</button>
+          </div>
+          <div class="actions" *ngIf="editingId !== r.id && confirmId !== r.id">
+            <button type="button" class="btn btn-ghost" (click)="startEdit(r)">Edit</button>
+            <button type="button" class="btn btn-ghost" [class.btn-danger]="r.active" [disabled]="busy()" (click)="toggle(r)">
+              {{ r.active ? 'Deactivate' : 'Activate' }}
+            </button>
+            <button type="button" class="btn btn-ghost btn-danger" [disabled]="r.inUse > 0"
+                    [title]="r.inUse ? 'Named on ' + r.inUse + ' requests; deactivate instead' : 'Remove ' + r.name"
+                    (click)="confirmId = r.id">Remove</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="mute empty" *ngIf="!g.reviewers.length">No {{ g.role.label }}s yet.</p>
+</div>
+<p class="mute empty" *ngIf="loading()">Loading reviewers…</p>
+<p class="mute help">Renaming a reviewer updates every request that names them.</p>

@@ -1,0 +1,75 @@
+<p class="error" *ngIf="error">{{ error }}</p>
+
+<form class="panel add" (ngSubmit)="add()">
+  <h3>Add status</h3>
+  <div class="add-row" style="grid-template-columns: 1fr 2fr 1fr auto">
+    <input name="label" [(ngModel)]="draft.label" placeholder="Label, e.g. On Hold" maxlength="60" />
+    <input name="meaning" [(ngModel)]="draft.meaning" placeholder="Meaning, e.g. Paused awaiting vendor input" maxlength="200" />
+    <input name="whoActs" [(ngModel)]="draft.whoActs" placeholder="Who acts" maxlength="120" />
+    <button type="submit" class="btn btn-primary" [disabled]="!canAdd()">Add</button>
+  </div>
+  <p class="mute help" style="margin: 10px 0 0">
+    A new status is a pause step: a reviewer can move a request into it from In Review, Scheduled or Chief Architecture
+    Review, and from it back to where it came from, or to Changes Requested or Rejected.
+  </p>
+</form>
+
+<div class="panel table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 200px">Code</th>
+        <th style="width: 170px">Label</th>
+        <th>Meaning</th>
+        <th style="width: 150px">Who acts</th>
+        <th style="width: 100px">Kind</th>
+        <th style="width: 100px">In it now</th>
+        <th style="width: 90px">Status</th>
+        <th style="width: 280px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let s of statuses.statuses()" [class.inactive]="!s.active">
+        <td class="mono mute code">{{ s.code }}</td>
+        <ng-container *ngIf="editingCode === s.code; else show">
+          <td><input [(ngModel)]="edit.label" [name]="'label' + s.code" maxlength="60" aria-label="Label" /></td>
+          <td><input [(ngModel)]="edit.meaning" [name]="'meaning' + s.code" maxlength="200" aria-label="Meaning" /></td>
+          <td><input [(ngModel)]="edit.whoActs" [name]="'who' + s.code" maxlength="120" aria-label="Who acts" /></td>
+        </ng-container>
+        <ng-template #show>
+          <td class="name">{{ s.label }}</td>
+          <td class="mute">{{ s.meaning }}</td>
+          <td class="mute">{{ s.whoActs }}</td>
+        </ng-template>
+        <td class="mute">{{ s.builtin ? 'Built-in' : 'Pause step' }}</td>
+        <td class="num mute">{{ s.inUse }}</td>
+        <td><span class="state" [class.on]="s.active">{{ s.active ? 'Active' : 'Inactive' }}</span></td>
+        <td>
+          <div class="actions" *ngIf="editingCode === s.code">
+            <button type="button" class="btn btn-ghost" (click)="editingCode = null">Cancel</button>
+            <button type="button" class="btn btn-primary" [disabled]="busy || !edit.label.trim() || !edit.meaning.trim() || !edit.whoActs.trim()"
+                    (click)="save(s)">Save</button>
+          </div>
+          <div class="actions" *ngIf="editingCode !== s.code && confirmCode === s.code">
+            <button type="button" class="btn btn-ghost" (click)="confirmCode = null">Keep</button>
+            <button type="button" class="btn btn-primary btn-danger" [disabled]="busy" (click)="remove(s)">Remove {{ s.label }}</button>
+          </div>
+          <div class="actions" *ngIf="editingCode !== s.code && confirmCode !== s.code">
+            <button type="button" class="btn btn-ghost" (click)="startEdit(s)">Edit</button>
+            <button *ngIf="s.deactivatable" type="button" class="btn btn-ghost" [class.btn-danger]="s.active" [disabled]="busy" (click)="toggle(s)">
+              {{ s.active ? 'Deactivate' : 'Activate' }}
+            </button>
+            <button *ngIf="!s.builtin" type="button" class="btn btn-ghost btn-danger" [disabled]="s.inUse > 0"
+                    [title]="s.inUse ? s.inUse + ' requests are in it; deactivate it instead' : 'Remove ' + s.label"
+                    (click)="confirmCode = s.code">Remove</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p class="mute help">
+  Draft, Submitted, In Review, Scheduled, Chief Architecture Review and Approved are the review route's backbone and
+  always stay active. A deactivated status can't be moved into; requests already in it can still leave. Statuses a
+  request has ever been in can't be removed.
+</p>

@@ -5,12 +5,52 @@ from pathlib import Path
 from portal.constants import PERMISSION_CATALOG, REQUEST_STATUSES
 from portal.db import now_iso
 
+# Defaults for the reference data tables, inserted only when a table is empty; after that the lists belong to
+# the admins (Reference Data page).
+DEFAULT_REVIEW_TYPES = [
+    "Solution Architecture (SAD)",
+    "Architecture Decision Records (ADR)",
+    "Event-Driven Architecture Design",
+    "AI/ML Solution Architecture",
+    "API Contract & Design",
+    "Architecture Patterns & Standards",
+    "Data Architecture & Modeling",
+    "Architecture Certification",
+    "Architecture Due Diligence",
+]
+
+DEFAULT_PDLC_CHECKPOINTS = ["Inception", "Elaboration", "Construction", "Delivery"]
+
+# (code, label, review types that must carry this reference before the request leaves DRAFT)
+DEFAULT_ARTIFACT_NAMES = [
+    ("SAD",           "SAD",                  ["Solution Architecture (SAD)", "Architecture Decision Records (ADR)",
+                                              "Event-Driven Architecture Design", "Data Architecture & Modeling",
+                                              "Architecture Certification"]),
+    ("ADR",           "ADR",                  ["Architecture Decision Records (ADR)"]),
+    ("PATTERNS",      "Patterns & Standards", ["Architecture Patterns & Standards"]),
+    ("DUE_DILIGENCE", "Due Diligence",        ["Architecture Due Diligence"]),
+    ("API_SPEC",      "API Specification",    ["API Contract & Design"]),
+    ("DATA_DESIGN",   "Data Design",          []),
+    ("OTHER",         "Others",               []),
+]
+
+# The reviewers a new database starts with: role -> names.
+DEFAULT_REVIEWERS = {
+    "BU":  ["J. Rivera", "D. Fox", "H. Bello", "N. Osei", "C. Weiss"],
+    "FAE": ["S. Kaplan", "V. Iyer", "B. O'Neil", "F. Marchetti", "E. Sato"],
+    "ECS": ["G. Haddad", "T. Lindqvist", "Y. Okafor", "I. Moreau", "K. Tanaka"],
+}
+
 DEFAULT_ROLES = [
     ("REQUESTOR", "Requestor", "AAD-GovPortal-Requestors", "Submits intakes and tracks their own requests.",
      ["request:create", "request:view:own", "request:edit:own", "request:withdraw:own", "request:resubmit",
       "calendar:view"]),
     ("REVIEWER", "Reviewer", "AAD-GovPortal-Reviewers", "Reviews the queue and moves requests through the lifecycle.",
      ["request:view:all", "request:review", "request:schedule", "board:card:edit", "calendar:view", "insights:view"]),
+    ("CHIEF_ARCHITECT", "Chief Architect", "AAD-GovPortal-ChiefArchitects",
+     "Reviews the queue and approves Critical-risk requests in Chief Architecture Review.",
+     ["request:view:all", "request:review", "request:schedule", "request:signoff", "board:card:edit",
+      "calendar:view", "insights:view"]),
     ("ADMIN", "Admin", "AAD-GovPortal-Admins", "Full access, including users and permissions.",
      [code for code, *_ in PERMISSION_CATALOG]),
 ]
@@ -75,6 +115,8 @@ CREATE TABLE IF NOT EXISTS request_statuses (
     meaning      TEXT NOT NULL,
     who_acts     TEXT NOT NULL,
     position     INTEGER NOT NULL DEFAULT 0,
+    active       INTEGER NOT NULL DEFAULT 1,  -- 0: no new moves into it (DEACTIVATABLE_STATUSES and admin-added ones)
+    builtin      INTEGER NOT NULL DEFAULT 0,  -- 1: from REQUEST_STATUSES; 0: added by an admin as a pause step
     created_at   TEXT NOT NULL,
     created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at   TEXT NOT NULL,
@@ -85,7 +127,6 @@ CREATE TABLE IF NOT EXISTS requests (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     arb_title           TEXT NOT NULL,
     summary             TEXT,
-    artifact_link       TEXT,
     pr                  TEXT,
     app_id              TEXT,
     app_name            TEXT,
@@ -96,13 +137,19 @@ CREATE TABLE IF NOT EXISTS requests (
     pdlc_checkpoint     TEXT,
     date_submitted      TEXT NOT NULL,
     date_reviewed       TEXT,
-    bu_gov_reviewer     TEXT,
-    ea_gov_reviewer     TEXT,
+    bu_gov_reviewers    TEXT,     -- JSON list of BU reviewers' names (reviewers.name)
+    ea_gov_reviewers    TEXT,     -- JSON list of FAE Governance reviewers' names
+    ecs_reviewers       TEXT,     -- JSON list of ECS (Security) reviewers' names
     status              TEXT NOT NULL DEFAULT 'SUBMITTED' REFERENCES request_statuses(code),
     approval_date       TEXT,
     meeting_date        TEXT,  -- ARB meeting (YYYY-MM-DD); required by the API while SCHEDULED
     meeting_time        TEXT,  -- ARB meeting time (HH:MM, local); required by the API while SCHEDULED
     comments            TEXT,
+    artifacts           TEXT,     -- JSON [{code, link}], up to 5 Architecture Reference Links; link is free text
+    intelea_capability_link TEXT,
+    solution_id         TEXT,
+    risk_tier           INTEGER,  -- 1 Low, 2 Medium, 3 High, 4 Critical; picked by the requestor, required outside DRAFT
+    agent_review        TEXT,     -- JSON {passed, summary, findings, checkedAt} from the Low-risk validation agent
     created_at          TEXT NOT NULL,
     created_by          INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at          TEXT NOT NULL,
@@ -120,6 +167,57 @@ CREATE TABLE IF NOT EXISTS status_history (
     created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at   TEXT NOT NULL,
     updated_by   INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Architecture Reference Link names (the reference dropdown), managed on the Reference Data page.
+CREATE TABLE IF NOT EXISTS artifact_names (
+    code          TEXT PRIMARY KEY,
+    label         TEXT NOT NULL,
+    required_for  TEXT NOT NULL DEFAULT '[]',  -- JSON list of review types (requests.artifact_type) that must carry it outside DRAFT
+    active        INTEGER NOT NULL DEFAULT 1,  -- 0 hides it from new selections; requests that use it keep it
+    position      INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL,
+    created_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at    TEXT NOT NULL,
+    updated_by    INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Review types (requests.artifact_type holds the name). Renaming one renames it on requests and in
+-- artifact_names.required_for; one in use can be deactivated but not removed.
+CREATE TABLE IF NOT EXISTS review_types (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    active      INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL,
+    created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at  TEXT NOT NULL,
+    updated_by  INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- PDLC checkpoints in lifecycle order (requests.pdlc_checkpoint holds the name).
+CREATE TABLE IF NOT EXISTS pdlc_checkpoints (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    position    INTEGER NOT NULL DEFAULT 0,
+    active      INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL,
+    created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at  TEXT NOT NULL,
+    updated_by  INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- People who can be named as a request's BU, FAE or ECS reviewers. Requests store the names, so deactivating
+-- a reviewer leaves past requests as they were.
+CREATE TABLE IF NOT EXISTS reviewers (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    role        TEXT NOT NULL,  -- BU, FAE or ECS (REVIEWER_ROLES); validated by the API
+    active      INTEGER NOT NULL DEFAULT 1,  -- 0 hides it from new selections; requests that name it keep it
+    created_at  TEXT NOT NULL,
+    created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at  TEXT NOT NULL,
+    updated_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE (role, name)
 );
 
 -- Team Board: user-defined fields; card values live in board_cards.data keyed by board_fields.key.
@@ -157,6 +255,7 @@ SEED_USERS = [
     ("R. Patel",    "r.patel@example.com",   "REQUESTOR"),
     ("C. Weiss",    "c.weiss@example.com",   "REVIEWER"),
     ("B. O'Neil",   "b.oneil@example.com",   "REVIEWER"),
+    ("S. Kaplan",   "s.kaplan@example.com",  "CHIEF_ARCHITECT"),
     ("Portal Admin", "admin@example.com",    "ADMIN"),
 ]
 
@@ -164,12 +263,38 @@ SEED_USERS = [
 def init_db(db_path: Path) -> None:
     db = sqlite3.connect(db_path)
     db.executescript(SCHEMA)
+    add_missing_columns(db)
     seed_users(db)
     sync_permissions(db)
     sync_request_statuses(db)
+    seed_reference_data(db)
     seed_roles(db)
     seed_board_defaults(db)
+    seed_reviewers(db)
     db.close()
+
+
+# Columns added after release: CREATE TABLE IF NOT EXISTS leaves an existing table as it was.
+ADDED_COLUMNS = [
+    ("requests", "risk_tier", "INTEGER"),
+    ("requests", "agent_review", "TEXT"),
+    ("requests", "artifacts", "TEXT"),
+    ("requests", "intelea_capability_link", "TEXT"),
+    ("requests", "solution_id", "TEXT"),
+    ("requests", "bu_gov_reviewers", "TEXT"),
+    ("requests", "ea_gov_reviewers", "TEXT"),
+    ("requests", "ecs_reviewers", "TEXT"),
+    ("artifact_names", "active", "INTEGER NOT NULL DEFAULT 1"),
+    ("request_statuses", "active", "INTEGER NOT NULL DEFAULT 1"),
+    ("request_statuses", "builtin", "INTEGER NOT NULL DEFAULT 0"),
+]
+
+
+def add_missing_columns(db: sqlite3.Connection) -> None:
+    for table, column, decl in ADDED_COLUMNS:
+        if column not in {r[1] for r in db.execute(f"PRAGMA table_info({table})")}:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+    db.commit()
 
 
 def seed_users(db: sqlite3.Connection) -> None:
@@ -212,20 +337,32 @@ def sync_permissions(db: sqlite3.Connection) -> None:
     db.commit()
 
 
+# Built-in status codes come from code (the review route depends on them); their text and active flag are the
+# admins' once inserted. Admin-added statuses (builtin = 0) sort after the built-ins and are left alone.
 def sync_request_statuses(db: sqlite3.Connection) -> None:
     ts = now_iso()
-    for pos, (code, label, meaning, who_acts) in enumerate(REQUEST_STATUSES):
-        db.execute(
-            "INSERT INTO request_statuses (code, label, meaning, who_acts, position, created_at, updated_at) "
-            "VALUES (?,?,?,?,?,?,?) "
-            "ON CONFLICT(code) DO UPDATE SET label = excluded.label, meaning = excluded.meaning, "
-            "who_acts = excluded.who_acts, position = excluded.position, updated_at = excluded.updated_at "
-            "WHERE label IS NOT excluded.label OR meaning IS NOT excluded.meaning "
-            "OR who_acts IS NOT excluded.who_acts OR position IS NOT excluded.position",
-            (code, label, meaning, who_acts, pos, ts, ts)
-        )
+    db.executemany(
+        "INSERT INTO request_statuses (code, label, meaning, who_acts, position, builtin, created_at, updated_at) "
+        "VALUES (?,?,?,?,?,1,?,?) ON CONFLICT(code) DO UPDATE SET position = excluded.position, builtin = 1 "
+        "WHERE position IS NOT excluded.position OR builtin IS NOT 1",
+        [(code, label, meaning, who_acts, pos, ts, ts) for pos, (code, label, meaning, who_acts) in enumerate(REQUEST_STATUSES)])
     codes = [c for c, *_ in REQUEST_STATUSES]
-    db.execute(f"DELETE FROM request_statuses WHERE code NOT IN ({','.join('?' * len(codes))})", codes)
+    db.execute(f"DELETE FROM request_statuses WHERE builtin = 1 AND code NOT IN ({','.join('?' * len(codes))})", codes)
+    db.commit()
+
+
+def seed_reference_data(db: sqlite3.Connection) -> None:
+    ts = now_iso()
+    if not db.execute("SELECT COUNT(*) FROM review_types").fetchone()[0]:
+        db.executemany("INSERT INTO review_types (name, created_at, updated_at) VALUES (?,?,?)",
+                       [(n, ts, ts) for n in DEFAULT_REVIEW_TYPES])
+    if not db.execute("SELECT COUNT(*) FROM pdlc_checkpoints").fetchone()[0]:
+        db.executemany("INSERT INTO pdlc_checkpoints (name, position, created_at, updated_at) VALUES (?,?,?,?)",
+                       [(n, pos, ts, ts) for pos, n in enumerate(DEFAULT_PDLC_CHECKPOINTS)])
+    if not db.execute("SELECT COUNT(*) FROM artifact_names").fetchone()[0]:
+        db.executemany(
+            "INSERT INTO artifact_names (code, label, required_for, position, created_at, updated_at) VALUES (?,?,?,?,?,?)",
+            [(c, label, json.dumps(req), pos, ts, ts) for pos, (c, label, req) in enumerate(DEFAULT_ARTIFACT_NAMES)])
     db.commit()
 
 
@@ -242,6 +379,16 @@ def seed_roles(db: sqlite3.Connection) -> None:
             "INSERT INTO role_permissions (role_id, permission_code, created_at, updated_at) VALUES (?,?,?,?)",
             [(cur.lastrowid, p, ts, ts) for p in perms]
         )
+    db.commit()
+
+
+def seed_reviewers(db: sqlite3.Connection) -> None:
+    if db.execute("SELECT COUNT(*) FROM reviewers").fetchone()[0]:
+        return
+    ts = now_iso()
+    db.executemany(
+        "INSERT INTO reviewers (name, role, created_at, updated_at) VALUES (?,?,?,?)",
+        [(name, role, ts, ts) for role, names in DEFAULT_REVIEWERS.items() for name in names])
     db.commit()
 
 

@@ -26,13 +26,13 @@
            [class.out]="!d.inMonth" [class.today]="d.isToday">
         <span class="num mono">{{ d.day }}</span>
         <a class="event" *ngFor="let r of d.meetings" [routerLink]="['/requests', r.id]"
-           [style.--st]="statusColor[r.status]" [title]="(r.meetingTime ? r.meetingTime + ' · ' : '') + statuses.label(r.status) + ' · ' + r.arbTitle">
+           [style.--st]="statusColor(r.status)" [title]="(r.meetingTime ? r.meetingTime + ' · ' : '') + statuses.label(r.status) + ' · ' + r.arbTitle">
           <span class="ev-time mono" *ngIf="r.meetingTime">{{ r.meetingTime }}</span>
           <span class="ev-id mono">ARB-{{ r.id }}</span>
           <span class="ev-title">{{ r.arbTitle }}</span>
         </a>
         <span class="dots" *ngIf="d.meetings.length" aria-hidden="true">
-          <span class="dot" *ngFor="let r of d.meetings" [style.background]="statusColor[r.status]"></span>
+          <span class="dot" *ngFor="let r of d.meetings" [style.background]="statusColor(r.status)"></span>
         </span>
       </div>
     </ng-container>

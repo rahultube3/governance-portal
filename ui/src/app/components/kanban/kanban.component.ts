@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
-import { GovRequest, LifecycleStatus, STATUS_COLOR, meetingLabel } from '../../models/request.model';
+import { RequestStatusService } from '../../services/request-status.service';
+import { GovRequest, LifecycleStatus, STATUS_COLOR, isWebLink, meetingLabel } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
 import { AuditStampComponent } from '../audit-stamp/audit-stamp.component';
 
@@ -46,6 +47,7 @@ export class KanbanComponent implements OnInit {
   preview = signal<GovRequest | null>(null);
 
   readonly months = MONTHS;
+  readonly isWebLink = isWebLink;
   readonly quarters = QUARTERS;
   grain = signal<Grain>('all');
   year = signal(new Date().getFullYear());
@@ -83,7 +85,9 @@ export class KanbanComponent implements OnInit {
     });
   });
 
-  constructor(private svc: GovernanceService) {}
+  constructor(private svc: GovernanceService, private statuses: RequestStatusService) {
+    statuses.ensureLoaded();
+  }
 
   ngOnInit(): void {
     this.load();
@@ -99,11 +103,13 @@ export class KanbanComponent implements OnInit {
     });
   }
 
-  lanes = computed<Lane[]>(() =>
-    COLUMNS.map(col => ({
-      ...col,
-      requests: this.filtered().filter(r => col.statuses.includes(r.status)),
-    })));
+  // Requests in an admin-added pause step stay in the In Review lane.
+  lanes = computed<Lane[]>(() => {
+    const builtin = new Set(this.statuses.statuses().filter(s => s.builtin).map(s => s.code));
+    const lane = (r: GovRequest) => COLUMNS.find(c => c.statuses.includes(r.status))
+      ?? (builtin.has(r.status) ? undefined : COLUMNS[1]);
+    return COLUMNS.map(col => ({ ...col, requests: this.filtered().filter(r => lane(r) === col) }));
+  });
 
   openPreview(r: GovRequest) {
     this.preview.set(r);
@@ -123,8 +129,9 @@ export class KanbanComponent implements OnInit {
       ['SA contributors', r.saContributors],
       ['TrackIt ID', r.trackitId],
       ['PR', r.pr],
-      ['BU gov reviewer', r.buGovReviewer],
-      ['EA gov reviewer', r.eaGovReviewer],
+      ['BU gov reviewer', r.buGovReviewers?.join(', ')],
+      ['FAE gov reviewer', r.eaGovReviewers?.join(', ')],
+      ['ECS (Security) reviewer', r.ecsReviewers?.join(', ')],
       ['Submitted', r.dateSubmitted],
       ['Reviewed', r.dateReviewed],
       ['Approved', r.approvalDate],

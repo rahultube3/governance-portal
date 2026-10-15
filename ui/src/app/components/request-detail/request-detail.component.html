@@ -11,10 +11,13 @@
       <app-audit-stamp class="audit" [record]="req"></app-audit-stamp>
     </div>
     <div class="head-side">
-      <app-status-badge [status]="req.status"></app-status-badge>
-      <div class="head-actions" *ngIf="auth.canEdit(req) || auth.canWithdraw(req) || auth.canDelete()">
+      <div class="badges">
+        <app-tier-badge [tier]="req.riskTier"></app-tier-badge>
+        <app-status-badge [status]="req.status"></app-status-badge>
+      </div>
+      <div class="head-actions" *ngIf="auth.canEdit(req) || canWithdraw() || auth.canDelete()">
         <a *ngIf="auth.canEdit(req)" [routerLink]="['/requests', req.id, 'edit']" class="btn btn-ghost">Edit</a>
-        <button *ngIf="auth.canWithdraw(req)" class="btn btn-ghost btn-danger" (click)="confirmWithdraw = true">Withdraw</button>
+        <button *ngIf="canWithdraw()" class="btn btn-ghost btn-danger" (click)="confirmWithdraw = true">Withdraw</button>
         <button *ngIf="auth.canDelete()" class="btn btn-ghost btn-danger" (click)="confirmDelete = true">Delete</button>
       </div>
     </div>
@@ -29,12 +32,23 @@
           <div class="meta-row">
             <dt>{{ f.label }}</dt>
             <dd [class.mono]="f.mono">
-              <a *ngIf="f.link && f.value" [href]="f.value" target="_blank" rel="noopener">{{ f.value }}</a>
-              <span *ngIf="!f.link">{{ f.value || '—' }}</span>
+              <a *ngIf="isWebLink(f.value); else plain" [href]="f.value" target="_blank" rel="noopener">{{ f.value }}</a>
+              <ng-template #plain>{{ f.value || '—' }}</ng-template>
             </dd>
           </div>
         </ng-container>
       </dl>
+      <div class="comments">
+        <dt>Architecture Reference Links</dt>
+        <ul class="artifacts" *ngIf="req.artifacts?.length; else noArtifacts">
+          <li *ngFor="let a of req.artifacts">
+            <span class="art-name">{{ a.label }}</span>
+            <a *ngIf="isWebLink(a.link); else refText" [href]="a.link" target="_blank" rel="noopener">{{ a.link }}</a>
+            <ng-template #refText><span>{{ a.link }}</span></ng-template>
+          </li>
+        </ul>
+        <ng-template #noArtifacts><p class="mute">None attached.</p></ng-template>
+      </div>
       <div class="comments" *ngIf="req.comments">
         <dt>Comments</dt>
         <p>{{ req.comments }}</p>
@@ -45,15 +59,59 @@
     <aside class="side">
       <p class="action-error" *ngIf="actionError">{{ actionError }}</p>
 
-      <section class="panel act-card" *ngIf="auth.canReview(req)">
+      <section class="panel act-card" *ngIf="req.status !== 'DRAFT'">
+        <h3 class="card-title">Risk &amp; route</h3>
+        <div class="route">
+          <app-tier-badge [tier]="req.riskTier"></app-tier-badge>
+          <span *ngIf="tierInfo(req.riskTier) as info"><strong>{{ info.label }} risk.</strong> {{ info.route }}</span>
+          <span *ngIf="!req.riskTier" class="mute">No risk tier. A reviewer sets one to route the request.</span>
+        </div>
+        <div class="agent" *ngIf="req.agentReview as a" [class.pass]="a.passed">
+          <p class="agent-head mono">Agent validation · {{ a.passed ? 'Passed' : 'Failed' }} · {{ a.checkedAt | date: 'd MMM y, HH:mm' }}</p>
+          <p>{{ a.summary }}</p>
+          <ul class="reasons mute" *ngIf="a.findings.length">
+            <li *ngFor="let f of a.findings">{{ f }}</li>
+          </ul>
+        </div>
+        <ng-container *ngIf="canSetTier()">
+          <div *ngIf="editingTier; else changeTier" class="tier-form">
+            <label class="field">
+              <span class="label">Risk tier</span>
+              <select [(ngModel)]="newTier">
+                <option *ngFor="let t of meta?.riskTiers" [ngValue]="t.tier">{{ t.label }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="label">Reason</span>
+              <textarea [(ngModel)]="tierReason" placeholder="Why this tier fits the request better"></textarea>
+            </label>
+            <p class="mute act-help" *ngIf="!auth.can('request:signoff')">Only the Chief Architect can lower a tier.</p>
+            <div class="tier-actions">
+              <button class="btn btn-ghost" (click)="editingTier = false">Cancel</button>
+              <button class="btn btn-primary" (click)="saveTier(newTier)" [disabled]="updating || !tierReason.trim() || newTier === req.riskTier">Set tier</button>
+            </div>
+          </div>
+          <ng-template #changeTier>
+            <button class="btn btn-ghost full" (click)="startTierEdit()">Change risk tier</button>
+          </ng-template>
+        </ng-container>
+      </section>
+
+      <section class="panel act-card" *ngIf="req.nextSteps?.length">
         <h3 class="card-title">Advance lifecycle</h3>
         <label class="field">
           <span class="label">Move to status</span>
           <select [(ngModel)]="newStatus">
-            <option *ngFor="let s of reviewStatuses()" [value]="s.code">{{ s.label }}</option>
+            <option value="" disabled>Choose the next step…</option>
+            <option *ngFor="let s of req.nextSteps" [value]="s.status" [disabled]="!!s.blocked">
+              {{ statuses.label(s.status) }}{{ s.status === req.status ? ' (reschedule)' : '' }}
+            </option>
           </select>
         </label>
         <p class="mute act-help" *ngIf="statusInfo(newStatus) as info">{{ info.meaning }} · Who acts: {{ info.whoActs }}</p>
+        <ul class="blocked" *ngIf="blockedSteps().length">
+          <li *ngFor="let b of blockedSteps()"><strong>{{ b.statuses }}:</strong> {{ b.reason }}</li>
+        </ul>
         <div class="meeting-row" *ngIf="newStatus === 'SCHEDULED'">
           <label class="field">
             <span class="label">ARB meeting date</span>
@@ -102,10 +160,10 @@
         <h3 class="card-title">History</h3>
         <ol class="timeline">
           <li *ngFor="let h of req.history">
-            <span class="dot" [style.background]="statusColor[h.to_status]"></span>
+            <span class="dot" [style.background]="statusColor(h.to_status)"></span>
             <div class="tl-body">
               <div class="tl-line mono">
-                <span *ngIf="h.from_status">{{ statuses.label(h.from_status) }} → </span>{{ statuses.label(h.to_status) }}
+                <span *ngIf="h.from_status && h.from_status !== h.to_status">{{ statuses.label(h.from_status) }} → </span>{{ statuses.label(h.to_status) }}
               </div>
               <div class="tl-note" *ngIf="h.note">{{ h.note }}</div>
               <div class="tl-time mono mute">{{ h.created_at | date: 'd MMM y, HH:mm' }} · {{ dir.name(h.created_by) }}</div>

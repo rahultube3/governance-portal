@@ -1,0 +1,65 @@
+<p class="error" *ngIf="error()">{{ error() }}</p>
+
+<form class="panel add" (ngSubmit)="add()">
+  <h3>Add {{ noun }}</h3>
+  <div class="add-row">
+    <input name="newName" [(ngModel)]="newName" [placeholder]="'New ' + noun + ' name'" maxlength="120" />
+    <button type="submit" class="btn btn-primary" [disabled]="busy() || !newName.trim()">Add</button>
+  </div>
+</form>
+
+<div class="panel table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th *ngIf="ordered" style="width: 70px">Order</th>
+        <th>Name</th>
+        <th style="width: 110px">Used by</th>
+        <th style="width: 100px">Status</th>
+        <th style="width: 190px">Last updated</th>
+        <th style="width: 280px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let o of items(); let i = index; let last = last" [class.inactive]="!o.active">
+        <td *ngIf="ordered">
+          <div class="order">
+            <button type="button" class="icon" [disabled]="busy() || i === 0" (click)="move(i, -1)" [attr.aria-label]="'Move ' + o.name + ' up'">↑</button>
+            <button type="button" class="icon" [disabled]="busy() || last" (click)="move(i, 1)" [attr.aria-label]="'Move ' + o.name + ' down'">↓</button>
+          </div>
+        </td>
+        <td class="name">
+          <input *ngIf="editingId === o.id; else showName" [(ngModel)]="editName" [name]="'edit' + o.id" maxlength="120"
+                 (keydown.enter)="saveEdit(o)" (keydown.escape)="editingId = null" [attr.aria-label]="'New name for ' + o.name" />
+          <ng-template #showName>{{ o.name }}</ng-template>
+        </td>
+        <td class="num mute">{{ o.inUse }} {{ o.inUse === 1 ? 'request' : 'requests' }}</td>
+        <td><span class="state" [class.on]="o.active">{{ o.active ? 'Active' : 'Inactive' }}</span></td>
+        <td><app-audit-stamp [record]="o" [compact]="true"></app-audit-stamp></td>
+        <td>
+          <div class="actions" *ngIf="editingId === o.id">
+            <button type="button" class="btn btn-ghost" (click)="editingId = null">Cancel</button>
+            <button type="button" class="btn btn-primary" [disabled]="busy() || !editName.trim()" (click)="saveEdit(o)">Save</button>
+          </div>
+          <div class="actions" *ngIf="editingId !== o.id && confirmId === o.id">
+            <button type="button" class="btn btn-ghost" (click)="confirmId = null">Keep</button>
+            <button type="button" class="btn btn-primary btn-danger" [disabled]="busy()" (click)="remove(o)">Remove {{ o.name }}</button>
+          </div>
+          <div class="actions" *ngIf="editingId !== o.id && confirmId !== o.id">
+            <button type="button" class="btn btn-ghost" (click)="startEdit(o)">Edit</button>
+            <button type="button" class="btn btn-ghost" [class.btn-danger]="o.active" [disabled]="busy()" (click)="toggle(o)">
+              {{ o.active ? 'Deactivate' : 'Activate' }}
+            </button>
+            <button type="button" class="btn btn-ghost btn-danger" [disabled]="o.inUse > 0"
+                    [title]="o.inUse ? 'Used by ' + o.inUse + ' requests; deactivate it instead' : 'Remove ' + o.name"
+                    (click)="confirmId = o.id">Remove</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="mute empty" *ngIf="loading()">Loading…</p>
+  <p class="mute empty" *ngIf="!loading() && !items().length">No {{ noun }}s yet.</p>
+</div>
+<p class="mute help" *ngIf="!ordered">Listed by name. Renaming updates every request that uses it.</p>
+<p class="mute help" *ngIf="ordered">Shown on the intake form in this order. Renaming updates every request that uses it.</p>

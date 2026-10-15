@@ -14,12 +14,14 @@ export type Permission =
   | 'request:resubmit'
   | 'request:review'
   | 'request:schedule'
+  | 'request:signoff'
   | 'calendar:view'
   | 'board:card:edit'
   | 'board:field:manage'
   | 'insights:view'
   | 'insights:export'
   | 'user:manage'
+  | 'reference:manage'
   | 'role:assign';
 
 export interface User {

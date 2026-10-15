@@ -28,7 +28,9 @@ package "Governance requests" #F4F9FB {
     --
     * arb_title : TEXT
     summary : TEXT
-    artifact_link : TEXT
+    artifacts : TEXT (JSON [{code, link}], up to 5)
+    intelea_capability_link : TEXT
+    solution_id : TEXT
     pr : TEXT
     app_id : TEXT
     app_name : TEXT
@@ -39,13 +41,16 @@ package "Governance requests" #F4F9FB {
     pdlc_checkpoint : TEXT
     * date_submitted : TEXT
     date_reviewed : TEXT
-    bu_gov_reviewer : TEXT
-    ea_gov_reviewer : TEXT
+    bu_gov_reviewers : TEXT (JSON list)
+    ea_gov_reviewers : TEXT (JSON list)
+    ecs_reviewers : TEXT (JSON list)
     * status : TEXT = 'SUBMITTED' <<FK request_statuses>>
     approval_date : TEXT
     meeting_date : TEXT
     meeting_time : TEXT
     comments : TEXT
+    risk_tier : INTEGER (1 Low .. 4 Critical)
+    agent_review : TEXT (JSON)
     .. audit ..
     * created_at : TEXT
     created_by : INTEGER <<FK users>>
@@ -67,12 +72,50 @@ package "Governance requests" #F4F9FB {
     updated_by : INTEGER <<FK users>>
   }
 
-  entity "request_statuses" as request_statuses {
+  entity "review_types" as review_types {
+    * id : INTEGER <<PK>>
+    --
+    * name : TEXT <<UNIQUE>>
+    * active : INTEGER = 1
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "pdlc_checkpoints" as pdlc_checkpoints {
+    * id : INTEGER <<PK>>
+    --
+    * name : TEXT <<UNIQUE>>
+    * position : INTEGER = 0
+    * active : INTEGER = 1
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "reviewers" as reviewers {
+    * id : INTEGER <<PK>>
+    --
+    * name : TEXT
+    * role : TEXT (BU / FAE / ECS)
+    * active : INTEGER = 1
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
+  entity "artifact_names" as artifact_names {
     * code : TEXT <<PK>>
     --
     * label : TEXT
-    * meaning : TEXT
-    * who_acts : TEXT
+    * required_for : TEXT (JSON list of review types)
+    * active : INTEGER = 1
     * position : INTEGER = 0
     .. audit ..
     * created_at : TEXT
@@ -80,6 +123,23 @@ package "Governance requests" #F4F9FB {
     * updated_at : TEXT
     updated_by : INTEGER <<FK users>>
   }
+
+  entity "request_statuses" as request_statuses {
+    * code : TEXT <<PK>>
+    --
+    * label : TEXT
+    * meaning : TEXT
+    * who_acts : TEXT
+    * position : INTEGER = 0
+    * active : INTEGER = 1
+    * builtin : INTEGER = 0 (1: review route; 0: admin-added pause step)
+    .. audit ..
+    * created_at : TEXT
+    created_by : INTEGER <<FK users>>
+    * updated_at : TEXT
+    updated_by : INTEGER <<FK users>>
+  }
+
 }
 
 package "Identity & access" #FBF8F2 {
@@ -176,6 +236,10 @@ permissions ||--o{ role_permissions : "permission_code\nON DELETE CASCADE"
 users |o--o{ requests : "created_by /\nupdated_by"
 users |o--o{ status_history : "created_by /\nupdated_by"
 users |o--o{ request_statuses : "created_by /\nupdated_by"
+users |o--o{ artifact_names : "created_by /\nupdated_by"
+users |o--o{ reviewers : "created_by /\nupdated_by"
+users |o--o{ review_types : "created_by /\nupdated_by"
+users |o--o{ pdlc_checkpoints : "created_by /\nupdated_by"
 users |o--o{ roles : "created_by /\nupdated_by"
 users |o--o{ permissions : "created_by /\nupdated_by"
 users |o--o{ role_permissions : "created_by /\nupdated_by"
@@ -184,6 +248,10 @@ users |o--o{ board_cards : "created_by /\nupdated_by"
 users |o--o{ users : "created_by /\nupdated_by"
 
 ' ---- Logical relationships (no FK constraint) ----
+review_types ||..o{ requests : "artifact_type = review_types.name"
+pdlc_checkpoints ||..o{ requests : "pdlc_checkpoint = pdlc_checkpoints.name"
+reviewers ||..o{ requests : "bu_gov_reviewers / ea_gov_reviewers /\necs_reviewers hold reviewers.name lists"
+artifact_names ||..o{ requests : "artifacts JSON [{code}];\nartifact_type in required_for"
 users }o..|| roles : "role = roles.code\n(demo AD group membership)"
 board_fields ||..o{ board_cards : "data JSON keyed\nby board_fields.key"
 

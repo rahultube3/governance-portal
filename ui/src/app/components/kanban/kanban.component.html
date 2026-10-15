@@ -100,9 +100,9 @@
         <dt class="field-label">{{ f.label }}</dt>
         <dd>{{ f.value }}</dd>
       </ng-container>
-      <ng-container *ngIf="p.artifactLink">
-        <dt class="field-label">Artifact</dt>
-        <dd><a [href]="p.artifactLink" target="_blank" rel="noopener">{{ p.artifactLink }}</a></dd>
+      <ng-container *ngFor="let a of p.artifacts">
+        <dt class="field-label">{{ a.label }}</dt>
+        <dd><a *ngIf="isWebLink(a.link); else refText" [href]="a.link" target="_blank" rel="noopener">{{ a.link }}</a><ng-template #refText>{{ a.link }}</ng-template></dd>
       </ng-container>
     </dl>
     <div *ngIf="p.comments">

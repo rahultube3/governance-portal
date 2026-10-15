@@ -24,26 +24,43 @@
       </label>
       <label class="field">
         <span class="label req">Review Type</span>
-        <select [(ngModel)]="model.artifactType" name="artifactType">
+        <select [(ngModel)]="model.artifactType" (ngModelChange)="onTypeChange()" name="artifactType">
           <option value="" disabled>Select a type…</option>
-          <option *ngFor="let t of meta?.artifactTypes" [value]="t">{{ t }}</option>
+          <option *ngFor="let t of optionsFor(meta?.artifactTypes, model.artifactType)" [value]="t.name">{{ t.name }}{{ t.active ? '' : ' (deactivated)' }}</option>
         </select>
       </label>
       <label class="field">
         <span class="label req">PDLC Checkpoint</span>
         <select [(ngModel)]="model.pdlcCheckpoint" name="pdlcCheckpoint">
           <option value="">—</option>
-          <option *ngFor="let c of meta?.pdlcCheckpoints" [value]="c">{{ c }}</option>
+          <option *ngFor="let c of optionsFor(meta?.pdlcCheckpoints, model.pdlcCheckpoint)" [value]="c.name">{{ c.name }}{{ c.active ? '' : ' (deactivated)' }}</option>
         </select>
       </label>
-      <label class="field">
-        <span class="label">Artifact Link</span>
-        <input [(ngModel)]="model.artifactLink" name="artifactLink" placeholder="https://…" />
-      </label>
-      <label class="field">
-        <span class="label">PR</span>
-        <input [(ngModel)]="model.pr" name="pr" placeholder="PR12345" />
-      </label>
+      <div class="field artifacts">
+        <span class="label">Architecture Reference Links <span class="mute">({{ artifacts.length }} of {{ meta?.maxArtifacts ?? 5 }})</span></span>
+        <p class="mute art-help" *ngIf="requiredArtifacts().length"><span class="star" aria-hidden="true">*</span> {{ requirementText(requiredArtifacts()) }}</p>
+        <div class="artifact-row" *ngFor="let a of artifacts; let i = index">
+          <select [(ngModel)]="a.code" [name]="'artifactName' + i" aria-label="Reference name" [disabled]="isRequiredRow(i)">
+            <option value="" disabled>Reference…</option>
+            <option *ngFor="let n of choicesFor(a)" [value]="n.code">{{ n.label }}{{ n.active ? '' : ' (deactivated)' }}</option>
+          </select>
+          <div class="link-box" [class.removable]="!isRequiredRow(i)">
+            <input [(ngModel)]="a.link" [name]="'artifactLink' + i" placeholder="Link or reference" aria-label="Reference link or text" />
+            <button *ngIf="!isRequiredRow(i)" type="button" class="remove" (click)="removeArtifact(i)" aria-label="Remove reference" title="Remove reference">×</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost add" (click)="addArtifact()" [disabled]="!canAddArtifact()">+ Add reference</button>
+      </div>
+      <div class="side-fields">
+        <label class="field">
+          <span class="label req">IntelEA Capability Link</span>
+          <input [(ngModel)]="model.intelEaCapabilityLink" name="intelEaCapabilityLink" placeholder="Link or capability name" />
+        </label>
+        <label class="field">
+          <span class="label">Solution ID</span>
+          <input [(ngModel)]="model.solutionId" name="solutionId" placeholder="SOL-1024" />
+        </label>
+      </div>
     </div>
   </section>
 
@@ -62,6 +79,10 @@
       <span class="label">TrackIT ID</span>
       <input [(ngModel)]="model.trackitId" name="trackitId" placeholder="98767" />
     </label>
+    <label class="field">
+      <span class="label">PR</span>
+      <input [(ngModel)]="model.pr" name="pr" placeholder="PR12345" />
+    </label>
   </section>
 
   <section class="panel section">
@@ -76,44 +97,40 @@
     </label>
   </section>
 
+  <!-- Section: Risk tier -->
+  <section class="panel section span-2" *ngIf="meta">
+    <h3 class="sec-title">Risk tier</h3>
+    <p class="mute sec-help" *ngIf="!tierLocked">Rate the request against the risk-based framework. The tier decides how it is reviewed. Drafts can be saved without one.</p>
+    <p class="mute sec-help" *ngIf="tierLocked">The request is submitted, so only a reviewer can change its tier.</p>
+    <label class="field">
+      <span class="label req">Risk tier</span>
+      <select [(ngModel)]="model.riskTier" name="riskTier" [disabled]="tierLocked">
+        <option [ngValue]="null" disabled>Select a tier…</option>
+        <option *ngFor="let t of meta.riskTiers" [ngValue]="t.tier">{{ t.label }}</option>
+      </select>
+    </label>
+    <div class="tier-preview" *ngIf="tierInfo(model.riskTier) as info">
+      <app-tier-badge [tier]="info.tier"></app-tier-badge>
+      <span>{{ info.route }}</span>
+    </div>
+  </section>
+
   <!-- Section: Governance -->
   <section class="panel section span-2">
     <h3 class="sec-title">Governance review</h3>
     <div class="two">
-      <label class="field">
-        <span class="label">Date Submitted</span>
-        <input type="date" [(ngModel)]="model.dateSubmitted" name="dateSubmitted" />
-      </label>
-      <label class="field" *ngIf="canEditReview">
-        <span class="label">Date Reviewed</span>
-        <input type="date" [(ngModel)]="model.dateReviewed" name="dateReviewed" />
-      </label>
-      <label class="field">
-        <span class="label">BU Governance Reviewer</span>
-        <input [(ngModel)]="model.buGovReviewer" name="buGovReviewer" placeholder="Full name" />
-      </label>
-      <label class="field">
-        <span class="label">Enterprise Governance Reviewer</span>
-        <input [(ngModel)]="model.eaGovReviewer" name="eaGovReviewer" placeholder="Full name" />
-      </label>
-      <label class="field" *ngIf="canEditReview">
-        <span class="label">Status</span>
-        <select [(ngModel)]="model.status" name="status">
-          <option *ngFor="let s of statuses.statuses()" [value]="s.code">{{ s.label }}</option>
-        </select>
-      </label>
-      <label class="field" *ngIf="canEditReview">
-        <span class="label">Approval Date</span>
-        <input type="date" [(ngModel)]="model.approvalDate" name="approvalDate" />
-      </label>
-      <label class="field" *ngIf="canEditReview">
-        <span class="label" [class.req]="model.status === 'SCHEDULED'">ARB Meeting Date</span>
-        <input type="date" [(ngModel)]="model.meetingDate" name="meetingDate" />
-      </label>
-      <label class="field" *ngIf="canEditReview">
-        <span class="label" [class.req]="model.status === 'SCHEDULED'">ARB Meeting Time</span>
-        <input type="time" [(ngModel)]="model.meetingTime" name="meetingTime" />
-      </label>
+      <div class="field span-2 reviewer-boxes">
+        <fieldset class="reviewer-group" *ngFor="let role of meta?.reviewerRoles">
+          <legend class="label">{{ role.label }}</legend>
+          <div class="checks">
+            <label class="check" *ngFor="let r of reviewersFor(role)">
+              <input type="checkbox" [checked]="isPicked(role, r.name)" (change)="togglePicked(role, r.name, $any($event.target).checked)" />
+              <span>{{ r.name }}<span class="mute" *ngIf="!r.active"> (deactivated)</span></span>
+            </label>
+          </div>
+          <p class="mute none" *ngIf="!reviewersFor(role).length">No active reviewers for this role.</p>
+        </fieldset>
+      </div>
       <label class="field span-2" *ngIf="canEditReview">
         <span class="label">Comments</span>
         <textarea [(ngModel)]="model.comments" name="comments"

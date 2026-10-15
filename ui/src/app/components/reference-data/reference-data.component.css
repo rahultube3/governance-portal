@@ -1,0 +1,13 @@
+:host { display: block; }
+
+.head { margin-bottom: 18px; }
+.head h1 { font-size: 26px; margin-top: 4px; }
+.sub { margin: 6px 0 0; font-size: 13px; max-width: 760px; }
+
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+.tab {
+  background: transparent; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  padding: 10px 14px; font-size: 14px; color: var(--mute);
+}
+.tab:hover { color: var(--paper); }
+.tab.on { color: var(--paper); border-bottom-color: var(--cyan); font-weight: 500; }

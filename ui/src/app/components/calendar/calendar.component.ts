@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GovernanceService } from '../../services/governance.service';
 import { RequestStatusService } from '../../services/request-status.service';
-import { GovRequest, STATUS_COLOR } from '../../models/request.model';
+import { GovRequest, statusColor } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
 
 interface Day {
@@ -30,7 +30,7 @@ const iso = (y: number, m: number, d: number) =>
 })
 export class CalendarComponent implements OnInit {
   readonly weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  readonly statusColor = STATUS_COLOR;
+  readonly statusColor = statusColor;
 
   loading = signal(true);
   requests = signal<GovRequest[]>([]);

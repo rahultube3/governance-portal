@@ -6,12 +6,13 @@ import { GovernanceService } from '../../services/governance.service';
 import { AuthService } from '../../services/auth.service';
 import { GovRequest, Meta } from '../../models/request.model';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
+import { TierBadgeComponent } from '../tier-badge/tier-badge.component';
 import { RequestStatusService } from '../../services/request-status.service';
 
 @Component({
   selector: 'app-request-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, StatusBadgeComponent],
+  imports: [CommonModule, FormsModule, RouterLink, StatusBadgeComponent, TierBadgeComponent],
   templateUrl: './request-list.component.html',
   styleUrls: ['./request-list.component.css'],
 })
@@ -57,7 +58,7 @@ export class RequestListComponent implements OnInit {
   shortType(t: string): string {
     const m = t.match(/\(([^)]+)\)/);
     if (m) return m[1];
-    return t.replace(/ (Intake Request|Submission)$/,'').trim();
+    return t;
   }
 
   open(r: GovRequest): void {

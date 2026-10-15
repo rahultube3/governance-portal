@@ -11,6 +11,7 @@ import { CalendarComponent } from './components/calendar/calendar.component';
 import { LoginComponent } from './components/login/login.component';
 import { AdminComponent } from './components/admin/admin.component';
 import { PermissionsComponent } from './components/permissions/permissions.component';
+import { ReferenceDataComponent } from './components/reference-data/reference-data.component';
 import { authGuard, guestGuard } from './core/auth.guard';
 import { Permission } from './models/user.model';
 
@@ -31,6 +32,7 @@ export const routes: Routes = [
       { path: 'help', component: HelpComponent },
       { path: 'admin/users', component: AdminComponent, data: needs('user:manage') },
       { path: 'admin/permissions', component: PermissionsComponent, data: needs('role:assign') },
+      { path: 'admin/reference-data', component: ReferenceDataComponent, data: needs('reference:manage') },
       { path: 'requests', component: RequestListComponent, data: VIEW_REQUESTS },
       { path: 'requests/new', component: RequestFormComponent, data: needs('request:create') },
       { path: 'requests/:id', component: RequestDetailComponent, data: VIEW_REQUESTS },

@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS request_statuses (
     meaning      TEXT NOT NULL,
     who_acts     TEXT NOT NULL,
     position     INTEGER NOT NULL DEFAULT 0,
+    active       INTEGER NOT NULL DEFAULT 1,  -- 0: no new moves into it (DEACTIVATABLE_STATUSES and admin-added ones)
+    builtin      INTEGER NOT NULL DEFAULT 0,  -- 1: from REQUEST_STATUSES; 0: added by an admin as a pause step
     created_at   TEXT NOT NULL,
     created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at   TEXT NOT NULL,
@@ -79,7 +81,6 @@ CREATE TABLE IF NOT EXISTS requests (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     arb_title           TEXT NOT NULL,
     summary             TEXT,
-    artifact_link       TEXT,
     pr                  TEXT,
     app_id              TEXT,
     app_name            TEXT,
@@ -90,13 +91,19 @@ CREATE TABLE IF NOT EXISTS requests (
     pdlc_checkpoint     TEXT,
     date_submitted      TEXT NOT NULL,
     date_reviewed       TEXT,
-    bu_gov_reviewer     TEXT,
-    ea_gov_reviewer     TEXT,
+    bu_gov_reviewers    TEXT,     -- JSON list of BU reviewers' names (reviewers.name)
+    ea_gov_reviewers    TEXT,     -- JSON list of FAE Governance reviewers' names
+    ecs_reviewers       TEXT,     -- JSON list of ECS (Security) reviewers' names
     status              TEXT NOT NULL DEFAULT 'SUBMITTED' REFERENCES request_statuses(code),
     approval_date       TEXT,
     meeting_date        TEXT,  -- ARB meeting (YYYY-MM-DD); required by the API while SCHEDULED
     meeting_time        TEXT,  -- ARB meeting time (HH:MM, local); required by the API while SCHEDULED
     comments            TEXT,
+    artifacts           TEXT,     -- JSON [{code, link}], up to 5 Architecture Reference Links; link is free text
+    intelea_capability_link TEXT,
+    solution_id         TEXT,
+    risk_tier           INTEGER,  -- 1 Low, 2 Medium, 3 High, 4 Critical; picked by the requestor, required outside DRAFT
+    agent_review        TEXT,     -- JSON {passed, summary, findings, checkedAt} from the Low-risk validation agent
     created_at          TEXT NOT NULL,
     created_by          INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at          TEXT NOT NULL,
@@ -114,6 +121,57 @@ CREATE TABLE IF NOT EXISTS status_history (
     created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at   TEXT NOT NULL,
     updated_by   INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Architecture Reference Link names (the reference dropdown), managed on the Reference Data page.
+CREATE TABLE IF NOT EXISTS artifact_names (
+    code          TEXT PRIMARY KEY,
+    label         TEXT NOT NULL,
+    required_for  TEXT NOT NULL DEFAULT '[]',  -- JSON list of review types (requests.artifact_type) that must carry it outside DRAFT
+    active        INTEGER NOT NULL DEFAULT 1,  -- 0 hides it from new selections; requests that use it keep it
+    position      INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL,
+    created_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at    TEXT NOT NULL,
+    updated_by    INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Review types (requests.artifact_type holds the name). Renaming one renames it on requests and in
+-- artifact_names.required_for; one in use can be deactivated but not removed.
+CREATE TABLE IF NOT EXISTS review_types (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    active      INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL,
+    created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at  TEXT NOT NULL,
+    updated_by  INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- PDLC checkpoints in lifecycle order (requests.pdlc_checkpoint holds the name).
+CREATE TABLE IF NOT EXISTS pdlc_checkpoints (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    position    INTEGER NOT NULL DEFAULT 0,
+    active      INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL,
+    created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at  TEXT NOT NULL,
+    updated_by  INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- People who can be named as a request's BU, FAE or ECS reviewers. Requests store the names, so deactivating
+-- a reviewer leaves past requests as they were.
+CREATE TABLE IF NOT EXISTS reviewers (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    role        TEXT NOT NULL,  -- BU, FAE or ECS (REVIEWER_ROLES); validated by the API
+    active      INTEGER NOT NULL DEFAULT 1,  -- 0 hides it from new selections; requests that name it keep it
+    created_at  TEXT NOT NULL,
+    created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at  TEXT NOT NULL,
+    updated_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE (role, name)
 );
 
 -- Team Board: user-defined fields; card values live in board_cards.data keyed by board_fields.key.

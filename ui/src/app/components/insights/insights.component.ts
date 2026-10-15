@@ -136,7 +136,7 @@ export class InsightsComponent implements OnInit {
   shortType(t: string): string {
     const m = t.match(/\(([^)]+)\)/);
     if (m) return m[1];
-    return t.replace(/ (Intake Request|Submission)$/,'').trim();
+    return t;
   }
 
   exportCsv() {

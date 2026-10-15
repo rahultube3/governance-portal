@@ -17,12 +17,20 @@ DOCUMENTS: list[dict[str, str]] = [
             "Required evidence: a current architecture diagram, the relevant template filled in, "
             "and links to the App ID and TrackIT records. Incomplete evidence is the most common "
             "cause of Changes Requested.\n"
-            "Lifecycle: Draft (saved, not submitted) -> Submitted (waiting for a reviewer) -> "
-            "In Review -> optionally Scheduled for an Architecture Review Board meeting or "
-            "escalated to Chief Architecture Review for final sign-off -> Approved, Approved with "
-            "Conditions, or Rejected. Changes Requested means the request must be revised and "
-            "resubmitted on the same request so history stays in one place. A requestor can "
-            "withdraw a Draft or Submitted request, which marks it Withdrawn.\n"
+            "Lifecycle: Draft (saved, not submitted) -> Submitted -> In Review -> Scheduled for an "
+            "Architecture Review Board meeting -> Chief Architecture Review for Critical requests -> "
+            "Approved, Approved with Conditions, or Rejected. Changes Requested means the request must be "
+            "revised and resubmitted on the same request so history stays in one place. A requestor can "
+            "withdraw a Draft or Submitted request, which marks it Withdrawn. Approved, Approved with "
+            "Conditions, Rejected and Withdrawn are final.\n"
+            "Risk tiers: the requestor rates every intake Low, Medium, High or Critical under the "
+            "risk-based framework before submitting it, and the tier decides the route. Low: a validation "
+            "agent checks the intake against these standards when it is submitted; if it passes, the "
+            "request is approved automatically, otherwise it goes In Review and a reviewer decides. Medium "
+            "and High: a reviewer assesses it, it is discussed at an ARB meeting, and a reviewer decides. "
+            "Critical: the same, then Chief Architecture Review, and only the Chief Architect can approve "
+            "it. After submission only a reviewer can change the tier, with a reason; any reviewer can "
+            "raise it and only the Chief Architect can lower it.\n"
             "SLAs: triage within 1 business day, first review within 5 business days, rework "
             "re-review within 3 business days. The review board meets weekly; quorum is three "
             "reviewers including one EA governance representative."
@@ -38,7 +46,7 @@ DOCUMENTS: list[dict[str, str]] = [
             "deviates from a reference architecture.\n"
             "ADRs follow the template: Context, Options considered, Decision, Consequences. "
             "Keep them short (one to two pages) and write them at decision time, not after "
-            "delivery. ADRs are submitted through the portal as an ADR Submission artifact and "
+            "delivery. ADRs are submitted through the portal as an Architecture Decision Records (ADR) review and "
             "reviewed in the same lifecycle as other intakes."
         ),
     },
@@ -66,7 +74,7 @@ DOCUMENTS: list[dict[str, str]] = [
             "transit plus access reviews every quarter.\n"
             "Retention defaults: transactional data 7 years, logs 13 months, analytics copies 25 "
             "months, unless a regulation says otherwise. Data intakes are submitted as a Data "
-            "Architecture Intake Request in the portal."
+            "Architecture & Modeling review in the portal."
         ),
     },
     {
@@ -79,8 +87,8 @@ DOCUMENTS: list[dict[str, str]] = [
             "the default; FULL compatibility is required for topics with more than three "
             "consumers.\n"
             "Delivery is at-least-once; consumers must be idempotent. Event payloads carry "
-            "eventId, occurredAt, and producer fields. Messaging intakes are submitted as a "
-            "Messaging & Streaming Architecture Intake Request."
+            "eventId, occurredAt, and producer fields. Messaging intakes are submitted as an "
+            "Event-Driven Architecture Design review."
         ),
     },
     {
@@ -92,7 +100,7 @@ DOCUMENTS: list[dict[str, str]] = [
             "(internal decisioning), Tier 3 (productivity/experimentation). Tier 1 and 2 "
             "deployments require a model card, documented evaluation evidence, and a named "
             "human-oversight owner before approval.\n"
-            "All AI/ML intakes are submitted as an AI/ML Architecture Intake Request and "
+            "All AI/ML intakes are submitted as an AI/ML Solution Architecture review and "
             "reviewed against this standard. Generative AI use with Confidential or Restricted "
             "data requires explicit EA governance sign-off."
         ),

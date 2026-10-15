@@ -1,10 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { filter } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth.service';
 
 type Theme = 'dark' | 'light';
 const THEME_KEY = 'gov-portal-theme';
+const ADMIN_NAV_KEY = 'gov-portal-admin-nav';
+const ADMIN_ROUTES = ['/admin/permissions', '/admin/reference-data'];
 
 @Component({
   selector: 'app-root',
@@ -80,12 +83,32 @@ const THEME_KEY = 'gov-portal-theme';
             </svg>
             Users
           </a>
-          <a *ngIf="auth.can('role:assign')" routerLink="/admin/permissions" routerLinkActive="active">
-            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/>
-            </svg>
-            Permissions
-          </a>
+          <div class="nav-group" *ngIf="auth.can('role:assign') || auth.can('reference:manage')">
+            <button type="button" class="nav-group-toggle" [class.has-active]="adminActive()" (click)="toggleAdmin()"
+                    [attr.aria-expanded]="adminOpen()" aria-controls="admin-nav">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>
+              </svg>
+              Administration
+              <svg class="chev" [class.open]="adminOpen()" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <div class="nav-group-items" id="admin-nav" *ngIf="adminOpen()">
+              <a *ngIf="auth.can('role:assign')" routerLink="/admin/permissions" routerLinkActive="active">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/>
+                </svg>
+                Permissions
+              </a>
+              <a *ngIf="auth.can('reference:manage')" routerLink="/admin/reference-data" routerLinkActive="active">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                  <ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v6c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-6"/>
+                  <path d="M4.5 11.5v6c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-6"/>
+                </svg>
+                Reference Data
+              </a>
+            </div>
+          </div>
         </nav>
         <div class="side-foot">
           <div class="me" [attr.data-role]="me.role">
@@ -179,6 +202,22 @@ const THEME_KEY = 'gov-portal-theme';
       border-radius: 2px; background: var(--cyan);
     }
 
+    .nav-group { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+    .nav-group-toggle {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      background: transparent; border: 0; text-align: left;
+      color: var(--mute); font-size: 14px; font-weight: 500;
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      transition: color .15s, background .15s;
+    }
+    .nav-group-toggle:hover, .nav-group-toggle.has-active { color: var(--paper); }
+    .nav-group-toggle:hover { background: var(--panel-2); }
+    .chev { width: 14px; height: 14px; margin-left: auto; fill: none; stroke: currentColor; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+    .chev.open { transform: rotate(90deg); }
+    .nav-group-items { display: flex; flex-direction: column; gap: 2px; }
+    .nav-group-items a { padding-left: 24px; }
+
     .side-foot {
       margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line-soft);
       display: flex; flex-direction: column; gap: 8px;
@@ -230,6 +269,9 @@ const THEME_KEY = 'gov-portal-theme';
       .nav a { white-space: nowrap; padding: 7px 10px; gap: 8px; }
       .nav .ico { width: 16px; height: 16px; }
       .nav a.active::before { left: 10px; right: 10px; top: auto; bottom: 0; width: auto; height: 2px; }
+      .nav-group, .nav-group-items { display: contents; }
+      .nav-group-toggle { display: none; }
+      .nav-group-items a { padding-left: 10px; }
       .side-foot { margin: 0; padding: 0; border: none; flex-direction: row; align-items: center; }
       .me { padding: 0; }
       .me-text { display: none; }
@@ -242,8 +284,29 @@ const THEME_KEY = 'gov-portal-theme';
 })
 export class AppComponent implements OnInit {
   theme = signal<Theme>('dark');
+  // The Administration group in the sidebar: always open on one of its pages, otherwise as the viewer left it.
+  adminOpen = signal(this.storedAdminOpen());
+  private url = signal('');
 
-  constructor(public auth: AuthService, private router: Router) {}
+  constructor(public auth: AuthService, private router: Router) {
+    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(e => {
+      this.url.set(e.urlAfterRedirects);
+      if (this.adminActive()) this.adminOpen.set(true);
+    });
+  }
+
+  adminActive(): boolean {
+    return ADMIN_ROUTES.some(r => this.url().startsWith(r));
+  }
+
+  toggleAdmin(): void {
+    this.adminOpen.update(open => !open);
+    try { localStorage.setItem(ADMIN_NAV_KEY, String(this.adminOpen())); } catch { /* storage unavailable */ }
+  }
+
+  private storedAdminOpen(): boolean {
+    try { return localStorage.getItem(ADMIN_NAV_KEY) !== 'false'; } catch { return true; }
+  }
 
   ngOnInit() {
     const saved = (localStorage.getItem(THEME_KEY) as Theme | null);

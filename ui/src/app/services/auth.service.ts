@@ -68,10 +68,6 @@ export class AuthService {
     return this.can('request:create') && this.owns(r) && r.status === 'DRAFT';
   }
 
-  canReview(r: GovRequest): boolean {
-    return this.can('request:review', 'request:schedule') && !this.owns(r);
-  }
-
   canResubmit(r: GovRequest): boolean {
     return this.can('request:resubmit') && this.owns(r) && r.status === 'CHANGES_REQUESTED';
   }

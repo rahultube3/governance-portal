@@ -142,7 +142,7 @@ button { font-family: var(--ff-body); cursor: pointer; }
 
 /* ---- inputs ---- */
 label.field { display: block; margin-bottom: 16px; }
-label.field > span.label {
+.field > span.label {
   display: block;
   font-family: var(--ff-mono);
   font-size: 11px;

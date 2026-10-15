@@ -1,0 +1,42 @@
+/* Shared by the Reference Data tabs. */
+:host { display: block; }
+.error { color: var(--st-rework); font-size: 13px; margin: 0 0 12px; }
+.help { font-size: 13px; margin: 0 0 14px; }
+
+.add { padding: 16px; margin-bottom: 16px; }
+.add h3 { font-size: 14px; margin-bottom: 10px; }
+.add-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+
+.table-wrap { overflow-x: auto; margin-bottom: 16px; }
+.group-title { font-size: 14px; padding: 14px 16px 0; }
+td input, td select { padding: 6px 10px; font-size: 13px; }
+td.num { font-variant-numeric: tabular-nums; }
+tr.inactive td.name { color: var(--mute); }
+.code { font-size: 12px; }
+
+.state {
+  font-size: 11px; letter-spacing: 0.06em; padding: 3px 8px; white-space: nowrap;
+  border-radius: var(--radius-sm); color: var(--mute-2); border: 1px solid var(--line);
+}
+.state.on { color: var(--st-ea); border-color: color-mix(in srgb, var(--st-ea) 45%, transparent); }
+
+.actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.actions .btn { padding: 6px 10px; font-size: 13px; }
+.order { display: flex; gap: 2px; }
+.icon {
+  width: 26px; height: 26px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: transparent; color: var(--mute); display: grid; place-items: center; line-height: 1;
+}
+.icon:hover:not(:disabled) { color: var(--paper); border-color: var(--cyan); }
+.icon:disabled { opacity: .35; cursor: not-allowed; }
+
+.checks { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+.check input { width: auto; margin: 0; accent-color: var(--cyan); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--paper); }
+.empty { padding: 16px; margin: 0; }
+
+@media (max-width: 760px) {
+  .add-row { grid-template-columns: 1fr; }
+}

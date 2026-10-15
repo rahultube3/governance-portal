@@ -9,6 +9,7 @@
 .summary { font-size: 15px; max-width: 640px; }
 .head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; flex-shrink: 0; }
 .head-actions { display: flex; gap: 8px; }
+.badges { display: flex; gap: 8px; align-items: center; }
 
 .layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; align-items: start; }
 
@@ -34,6 +35,11 @@
   text-transform: uppercase; color: var(--mute); margin-bottom: 6px;
 }
 .comments p { margin: 0; font-size: 14px; line-height: 1.6; }
+.artifacts { list-style: none; margin: 0; padding: 0; }
+.artifacts li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+.artifacts li:last-child { border-bottom: 0; }
+.art-name { font-size: 12px; color: var(--mute); }
+.artifacts a { word-break: break-all; }
 
 .side { display: flex; flex-direction: column; gap: 20px; }
 .field { margin-bottom: 14px; }
@@ -52,6 +58,22 @@
   background: color-mix(in srgb, var(--st-rework) 10%, transparent);
   border-radius: var(--radius-sm); padding: 10px 12px;
 }
+
+/* risk & route */
+.route { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.5; }
+.reasons { margin: 12px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.agent {
+  margin: 14px 0 0; padding: 10px 12px; font-size: 13px; line-height: 1.5;
+  border-left: 2px solid var(--st-follow); background: var(--panel-2); border-radius: var(--radius-sm);
+}
+.agent.pass { border-left-color: var(--st-ea); }
+.agent p { margin: 0; }
+.agent-head { font-size: 11px; letter-spacing: 0.06em; color: var(--mute); margin-bottom: 4px !important; }
+.agent .reasons { margin-top: 6px; }
+.tier-form { margin-top: 16px; }
+.tier-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.act-card > .full { margin-top: 16px; }
+.blocked { margin: 0 0 14px; padding-left: 18px; font-size: 12px; line-height: 1.6; color: var(--mute); }
 
 /* timeline */
 .timeline { list-style: none; margin: 0; padding: 0; }
